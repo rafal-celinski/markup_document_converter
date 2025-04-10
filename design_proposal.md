@@ -2,10 +2,16 @@
 
 Autorzy: Rafał Celiński, Mateusz Łukasiewicz, Przemysław Walecki
 
+## Opis
+
+Projekt ma na celu stworzenie aplikacji działającej z poziomu wiersza poleceń, której celem będzie swobodne konwertowanie plików typu Markdown na Typst i LaTeX. W ramach zadania stworzone zostanie AST (Abstract Syntax Tree), które pozwoli na odwzorowanie struktury dokumentów oraz ich konwersję.
+
+
+
 ## Harmonogram
 
 | Data       | Zadania                                          |
-| ---------- | ------------------------------------------------ |
+| ---------- |--------------------------------------------------|
 | 24.03.2025 | Repozytorium GitHub                              |
 |            | Konfiguracja środowiska                          |
 | 31.03.2025 | Zapoznanie z działaniem pandoc                   |
@@ -53,7 +59,7 @@ Autorzy: Rafał Celiński, Mateusz Łukasiewicz, Przemysław Walecki
 
 ### Wymagania niefunkcjonalne
 
-- Możliwość łatwego rozbudowania o nowe formaty plików
+- Możliwość łatwego rozbudowania o nowe formaty plików - cała aplikacja będzie opierać się na strukturze AST. Nowe formaty będą musiały jedynie zaimplementować przetwarzanie tego drzewa bez konieczności znania składni Markdowna.
 
 ## Stos technologiczny
 
@@ -68,3 +74,9 @@ Autorzy: Rafał Celiński, Mateusz Łukasiewicz, Przemysław Walecki
 - MkDocs
 - Tox
 - Just
+
+## Testy
+
+1. Testy jednostkowe - sprawdzimy poszczególne komponenty aplikacji takie jak: parser Markdown, transformator AST, funkcje pomocnicze
+2. Testy integracyjne - sprawdzany będzie cały przepływ przetwarzania dokumentu (porównywanie wynikowych plików ze wzorcami)
+3. Testy CLI - sprawdzimy działanie aplikacji z perspektywy użytkownika końcowego
