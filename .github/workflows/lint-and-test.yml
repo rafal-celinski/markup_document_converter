@@ -1,0 +1,37 @@
+name: Lint and Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '*'  # Uruchamiaj na wszystkich branchach
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Run black (check mode)
+        run: poetry run black --check .
+
+      - name: Run flake8
+        run: poetry run flake8 .
+
+      - name: Run tests
+        run: PYTHONPATH=$PWD/src poetry run pytest
