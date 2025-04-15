@@ -220,7 +220,7 @@ class TableRow(ASTNode):
 
 
 class TableCell(ASTNode):
-    def __init__(self, alignment=None, children=None):
+    def __init__(self, alignment="left", children=None):
         super().__init__("table_cell", children, attributes={"alignment": alignment})
 
     @property

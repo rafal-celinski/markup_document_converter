@@ -353,20 +353,20 @@ class TestTableRow:
     def test_init(self):
         row = TableRow()
         assert row.node_type == "table_row"
-        assert row.is_header == False
+        assert row.is_header is False
         assert row.children == []
 
     def test_init_with_header(self):
         row = TableRow(True)
-        assert row.is_header == True
-        assert row.attributes["is_header"] == True
+        assert row.is_header is True
+        assert row.attributes["is_header"] is True
 
     def test_is_header_property(self):
         row = TableRow(False)
-        assert row.is_header == False
+        assert row.is_header is False
         row.is_header = True
-        assert row.is_header == True
-        assert row.attributes["is_header"] == True
+        assert row.is_header is True
+        assert row.attributes["is_header"] is True
 
     def test_init_with_children(self):
         cell1 = TableCell(None, [Text("Cell 1")])
@@ -379,7 +379,7 @@ class TestTableCell:
     def test_init(self):
         cell = TableCell()
         assert cell.node_type == "table_cell"
-        assert cell.alignment == "left"  # domyślna wartość
+        assert cell.alignment == "left"
         assert cell.children == []
 
     def test_init_with_alignment(self):
@@ -404,20 +404,20 @@ class TestTaskListItem:
     def test_init(self):
         item = TaskListItem()
         assert item.node_type == "task_list_item"
-        assert item.checked == False
+        assert item.checked is False
         assert item.children == []
 
     def test_init_with_checked(self):
         item = TaskListItem(True)
-        assert item.checked == True
-        assert item.attributes["checked"] == True
+        assert item.checked is True
+        assert item.attributes["checked"] is True
 
     def test_checked_property(self):
         item = TaskListItem(False)
-        assert item.checked == False
+        assert item.checked is False
         item.checked = True
-        assert item.checked == True
-        assert item.attributes["checked"] == True
+        assert item.checked is True
+        assert item.attributes["checked"] is True
 
     def test_init_with_children(self):
         text = Text("Task description")
