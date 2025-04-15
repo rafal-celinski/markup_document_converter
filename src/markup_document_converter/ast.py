@@ -18,6 +18,16 @@ class ASTNode:
     def children(self):
         return self._children
 
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(node_type={self._node_type}, "
+            + f"attributes={self._attributes})"
+        )
+
+    @property
+    def node_type(self):
+        return self._node_type
+
 
 class Document(ASTNode):
     def __init__(self, children=None):
@@ -26,7 +36,7 @@ class Document(ASTNode):
 
 class Heading(ASTNode):
     def __init__(self, level, children=None):
-        super().__init__("header", children, attributes={"level": level})
+        super().__init__("heading", children, attributes={"level": level})
 
     @property
     def level(self):
@@ -53,8 +63,8 @@ class Strike(ASTNode):
 
 
 class Text(ASTNode):
-    def __init__(self, text):
-        super().__init__("text", children=[], attributes={"text": text})
+    def __init__(self, text, children=None):
+        super().__init__("text", children, attributes={"text": text})
 
     @property
     def text(self):
@@ -81,8 +91,8 @@ class Blockquote(ASTNode):
 
 
 class List(ASTNode):
-    def __init__(self, list_type):
-        super().__init__("list", children=[], attributes={"list_type": list_type})
+    def __init__(self, list_type, children=None):
+        super().__init__("list", children, attributes={"list_type": list_type})
 
     @property
     def list_type(self):
@@ -94,8 +104,8 @@ class List(ASTNode):
 
 
 class ListItem(ASTNode):
-    def __init__(self, order):
-        super().__init__("list_item", children=[], attributes={"order": order})
+    def __init__(self, order, children=None):
+        super().__init__("list_item", children, attributes={"order": order})
 
     @property
     def order(self):
@@ -107,9 +117,10 @@ class ListItem(ASTNode):
 
 
 class CodeBlock(ASTNode):
-    def __init__(self, code, language=None):
-        super().__init__("code_block", children=[], 
-                         attributes={"code": code, "language": language})
+    def __init__(self, code, language, children=None):
+        super().__init__(
+            "code_block", children, attributes={"code": code, "language": language}
+        )
 
     @property
     def code(self):
@@ -128,9 +139,24 @@ class CodeBlock(ASTNode):
         self.set_attribute("language", value)
 
 
+class InlineCode(ASTNode):
+    def __init__(self, code, children=None):
+        super().__init__("inline_code", children, attributes={"code": code})
+
+    @property
+    def code(self):
+        return self.attributes.get("code", "")
+
+    @code.setter
+    def code(self, value):
+        self.set_attribute("code", value)
+
+
 class Image(ASTNode):
-    def __init__(self, source, alt_text):
-        super().__init__("image", children=[], attributes={"source": source, "alt_text": alt_text})
+    def __init__(self, source, alt_text, children=None):
+        super().__init__(
+            "image", children, attributes={"source": source, "alt_text": alt_text}
+        )
 
     @property
     def source(self):
@@ -150,8 +176,8 @@ class Image(ASTNode):
 
 
 class Link(ASTNode):
-    def __init__(self, source, text):
-        super().__init__("link", children=[], attributes={"source": source, "text": text})
+    def __init__(self, source, text, children=None):
+        super().__init__("link", children, attributes={"source": source, "text": text})
 
     @property
     def source(self):
@@ -171,8 +197,8 @@ class Link(ASTNode):
 
 
 class HorizontalRule(ASTNode):
-    def __init__(self):
-        super().__init__("horizontal_rule", children=[])
+    def __init__(self, children=None):
+        super().__init__("horizontal_rule", children)
 
 
 class Table(ASTNode):
@@ -181,7 +207,7 @@ class Table(ASTNode):
 
 
 class TableRow(ASTNode):
-    def __init__(self, children=None, is_header=False):
+    def __init__(self, is_header=False, children=None):
         super().__init__("table_row", children, attributes={"is_header": is_header})
 
     @property
@@ -194,7 +220,7 @@ class TableRow(ASTNode):
 
 
 class TableCell(ASTNode):
-    def __init__(self, children=None, alignment=None):
+    def __init__(self, alignment=None, children=None):
         super().__init__("table_cell", children, attributes={"alignment": alignment})
 
     @property
@@ -207,7 +233,7 @@ class TableCell(ASTNode):
 
 
 class TaskListItem(ASTNode):
-    def __init__(self, children=None, checked=False):
+    def __init__(self, checked=False, children=None):
         super().__init__("task_list_item", children, attributes={"checked": checked})
 
     @property
