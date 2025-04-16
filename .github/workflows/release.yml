@@ -78,10 +78,12 @@ jobs:
             git log --pretty=format:"- %s" >> release_notes.md
           fi
 
+          delimiter=$(openssl rand -hex 8)
+
           {
-            echo "release_notes<<EOF"
+            echo "release_notes<<${delimiter}"
             cat release_notes.md
-            echo "EOF"
+            echo "${delimiter}"
           } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
