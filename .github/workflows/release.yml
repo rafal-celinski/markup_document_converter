@@ -81,9 +81,9 @@ jobs:
           delimiter=$(openssl rand -hex 8)
 
           {
-            echo "release_notes<<${delimiter}"
+            echo "release_notes<<$delimiter"
             cat release_notes.md
-            echo "${delimiter}"
+            echo "$delimiter"
           } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
