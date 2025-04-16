@@ -27,3 +27,4 @@ class BaseConverter(ABC):
         Returns:
             None: Creates file
         """
+        pass
