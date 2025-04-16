@@ -26,10 +26,37 @@ jobs:
           python-version: "3.13"
 
       - name: Install Poetry
-        run: pip install poetry
+        run: pip install poetry toml
 
       - name: Install dependencies
         run: poetry install --no-root
+
+      - name: Bump patch version only if current version exists as tag
+        id: bump
+        run: |
+          VERSION=$(python -c "import toml; print(toml.load(open('pyproject.toml'))['project']['version'])")
+          echo "Current version: $VERSION"
+
+          TAGS=$(git tag)
+          if echo "$TAGS" | grep -qx "$VERSION" || echo "$TAGS" | grep -qx "v$VERSION"; then
+            echo "Tag $VERSION exists. Bump PATCH."
+            poetry version patch
+            echo "bumped=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $VERSION doesn't exists. Don't bump version"
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push version bump
+        if: steps.bump.outputs.bumped == 'true'
+        run: |
+          git config --local user.name "${GITHUB_ACTOR}"
+          git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add pyproject.toml
+          git commit -m "Bump patch version [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract current version
         id: get_version
@@ -76,9 +103,13 @@ jobs:
             git log --pretty=format:"- %s" >> release_notes.md
           fi
 
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          delimiter=$(openssl rand -hex 8)
+
+          {
+            echo "release_notes<<$delimiter"
+            sed -e '$a\' release_notes.md
+            echo "$delimiter"
+          } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
