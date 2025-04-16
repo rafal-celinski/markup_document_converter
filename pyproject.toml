@@ -3,7 +3,8 @@ name = "markup-document-converter"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Rafał Celiński",email = "dev@rafalcelinski.pl"}
+    {name = "Rafał Celiński",email = "dev@rafalcelinski.pl"},
+    {name = "Mateusz Łukasiewicz",email = "mateuszlu2106@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
