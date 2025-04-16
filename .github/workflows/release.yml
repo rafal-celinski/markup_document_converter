@@ -82,7 +82,7 @@ jobs:
 
           {
             echo "release_notes<<$delimiter"
-            cat release_notes.md
+            sed -e '$a\' release_notes.md
             echo "$delimiter"
           } >> $GITHUB_OUTPUT
 
