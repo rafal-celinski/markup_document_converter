@@ -1,6 +1,14 @@
 from src.markup_document_converter.converters.base_converter import BaseConverter
 import src.markup_document_converter.ast as ast
 import re
+from dataclasses import dataclass
+
+
+@dataclass(order=True)
+class PreNode:
+    start_idx: int
+    content: str
+    pattern_name: str
 
 
 class MarkdownConverter(BaseConverter):
@@ -14,48 +22,66 @@ class MarkdownConverter(BaseConverter):
         Returns:
             ASTNode: Parsed AST tree.
         """
-        tags_values = {
-            "#": "\n",
-            "-": "\n",
+
+        patterns = {
+            "heading": r"^(#+)\s.*\n",
+            "list": r"^(\s*)-\s.*\n",
         }
+
         with open(input_file, "r") as fp:
             text = fp.read()
 
+        # Add \n at the end of the file so that algorithm works everytime
         if text[-1] != "\n":
             text += "\n"
         root = ast.Document()
 
-        idx = 0
-        while idx < len(text):
-            start_char = text[idx]
-            if start_char in tags_values.keys():
-                end_char = tags_values[start_char]
-            else:
-                end_char = "\n"
-            end_idx = self._find_next(end_char, text, idx)
-            block = text[idx : end_idx + 1]
-            root.add_child(self._parse_block(block, start_char))
-            idx = end_idx + 1
+        # Generating pre-nodes that will be converted to AST nodes
+        pre_nodes = []
+        for name in patterns:
+            pattern = re.compile(patterns[name], re.MULTILINE)
+            for match in pattern.finditer(text):
+                print(match.group())
+                pre_nodes.append(PreNode(match.start(), match.group(), name))
+
+        pre_nodes.sort()
+
+        print(pre_nodes)
+
+        # Creating pre-nodes for unmatched text
+        filled_nodes = []
+        current_pos = 0
+        for node in pre_nodes:
+            if current_pos < node.start_idx:
+                unmatched_text = text[current_pos : node.start_idx]
+                filled_nodes.append(PreNode(current_pos, unmatched_text, "text"))
+            filled_nodes.append(node)
+            current_pos = node.start_idx + len(node.content)
+
+        print(filled_nodes)
+
+        # Don't forget the end
+        if current_pos < len(text):
+            tail_text = text[current_pos:]
+            filled_nodes.append(PreNode(current_pos, tail_text, "text"))
+
+        for node in filled_nodes:
+            if node.pattern_name == "heading":
+                heading_level = len(re.findall(r"#+", node.content)[0])
+                root.add_child(
+                    ast.Heading(
+                        level=heading_level,
+                        children=[ast.Text(node.content[heading_level:])],
+                    )
+                )
+            elif node.pattern_name == "list":
+                root.add_child(
+                    ast.ListItem(order="unordered", children=[ast.Text(node.content)])
+                )
+            elif node.pattern_name == "text":
+                root.add_child(ast.Text(node.content))
+
         return root
 
-    def _find_next(self, char, text, idx):
-        j = idx
-        while True:
-            if text[j] == char:
-                return j
-            j += 1
-
-    def _parse_block(self, block, start_char):
-        if start_char == "#":
-            heading_level = len(re.findall(r"#+", block)[0])
-            return ast.Heading(
-                level=heading_level, children=self._parse_heading(block[heading_level:])
-            )
-        else:
-            return ast.Text(block)
-
-    def _parse_heading(self, heading):
-        return [ast.Text(heading)]
-
     def to_file(self, ast_root):
-        return "Work in progress"
+        return "In progress"

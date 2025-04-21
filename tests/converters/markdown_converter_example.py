@@ -1,7 +1,6 @@
 from src.markup_document_converter.converters.markdown_converter import (
     MarkdownConverter,
 )
-import os
 
 
 def print_ast(node, indent=0):
@@ -19,7 +18,6 @@ def print_ast(node, indent=0):
 
 
 def main():
-    print("CWD:", os.getcwd())
     converter = MarkdownConverter()
-    root = converter.to_AST("./tests/converters/file.md")
+    root = converter.to_AST("./tests/converters/basic.md")
     print_ast(root)
