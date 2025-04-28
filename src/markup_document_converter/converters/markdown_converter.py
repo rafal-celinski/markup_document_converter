@@ -8,7 +8,7 @@ from enum import Enum, auto
 class NodeType(Enum):
     HEADING = auto()
     LIST_ITEM = auto()
-    TEXT = auto()
+    PARAGRAPH = auto()
 
 
 @dataclass(order=True)
@@ -46,15 +46,16 @@ class MarkdownConverter(BaseConverter):
 
         self.patterns = {
             NodeType.HEADING: r"^(#+)\s.*\n",
-            NodeType.LIST_ITEM: r"^(\s*)-\s.*\n",
+            NodeType.LIST_ITEM: r"^(?P<indent>\s*)-\s.*(?:\n(?!\s*[-*+]|\s*\n).*)*",
         }
 
         self.inline_pattern = re.compile(
-            r"(?P<code>`[^`]+?`)"
-            r"|(?P<bolditalic>\*\*\*[^*]+?\*\*\*)"
-            r"|(?P<bold>\*\*[^*]+?\*\*)"
-            r"|(?P<italic>(\*[^*]+?\*)|(_[^_]+?_))"
-            r"|(?P<strike>~~[^~]+?~~)"
+            r"(?P<code>`+)(?P<code_content>.+?)(?P=code)"
+            r"|(?P<stars>\*{3,})(?P<stars_content>.+?)(?P=stars)"
+            r"|(?P<stars_bold>\*{2})(?P<stars_bold_content>.+?)(?P=stars_bold)"
+            r"|(?P<stars_italic>\*)(?P<stars_italic_content>.+?)(?P=stars_italic)"
+            r"|(?P<tilde>~{2,})(?P<tilde_content>.+?)(?P=tilde)",
+            re.DOTALL,
         )
 
         self.node_funcs = {}
@@ -103,16 +104,6 @@ class MarkdownConverter(BaseConverter):
         return text
 
     def _generate_prenodes(self, text: str) -> list[PreNode]:
-        """
-        Creates a list of PreNodes, representing different markup structures
-        found in the raw text using regex patterns. Also fills gaps with TEXT nodes.
-
-        Args:
-            text (str): Raw content of a file.
-
-        Returns:
-            list[PreNode]: Sorted list of PreNodes covering both matched and unmatched text.
-        """
         pre_nodes = []
         for name in self.patterns:
             pattern = re.compile(self.patterns[name], re.MULTILINE)
@@ -121,21 +112,32 @@ class MarkdownConverter(BaseConverter):
 
         pre_nodes.sort()
 
-        # Create text nodes for gaps
         filled_nodes = []
         current_pos = 0
         for node in pre_nodes:
             if current_pos < node.start_idx:
                 unmatched_text = text[current_pos : node.start_idx]
-                filled_nodes.append(PreNode(current_pos, unmatched_text, NodeType.TEXT))
+                paragraphs = re.split(r"\n\s*\n", unmatched_text)
+                offset = current_pos
+                for para in paragraphs:
+                    para = para.strip()
+                    if para:
+                        filled_nodes.append(PreNode(offset, para, NodeType.PARAGRAPH))
+                    offset += len(para) + 2
             filled_nodes.append(node)
             current_pos = node.start_idx + len(node.content)
 
         if current_pos < len(text):
-            tail_text = text[current_pos:]
-            filled_nodes.append(PreNode(current_pos, tail_text, NodeType.TEXT))
+            unmatched_text = text[current_pos:]
+            paragraphs = re.split(r"\n\s*\n", unmatched_text)
+            offset = current_pos
+            for para in paragraphs:
+                para = para.strip()
+                if para:
+                    filled_nodes.append(PreNode(offset, para, NodeType.PARAGRAPH))
+                offset += len(para) + 2
 
-        return filled_nodes
+        return sorted(filled_nodes, key=lambda n: n.start_idx)
 
     @process_prenode(NodeType.HEADING)
     def _process_heading(self, node: PreNode) -> ast.ASTNode:
@@ -152,9 +154,11 @@ class MarkdownConverter(BaseConverter):
         node.content = node.content.lstrip("# ").rstrip("\n")
 
         heading = ast.Heading(level=heading_level)
-        heading.add_child(self._process_text(node))
+        for child in self._parse_inline(node.content):
+            heading.add_child(child)
         return heading
 
+    ## TODO: Correct striping and level detection
     @process_prenode(NodeType.LIST_ITEM)
     def _process_list_item(self, node: PreNode) -> ast.ASTNode:
         """
@@ -166,28 +170,32 @@ class MarkdownConverter(BaseConverter):
         Returns:
             ast.ListItem: A list item node for the AST.
         """
-        node.content = node.content.lstrip(" -").rstrip("\n")
+        node.content = node.content.lstrip(" -")
 
         list_item = ast.ListItem(order="unordered")
-        list_item.add_child(self._process_text(node))
+        for child in self._parse_inline(node.content):
+            list_item.add_child(child)
         return list_item
 
-    def _strip_markers(self, text: str, left: int, right: int) -> str:
+    def _build_inline_node(
+        self, node_class: type[ast.ASTNode], content: str
+    ) -> ast.ASTNode:
         """
-        Removes a fixed number of characters from both sides of the text.
-        Typically used to strip markup symbols like **, *, ~~, or `.
+        Helper function to create an inline AST node and parse its children from content.
 
         Args:
-            text (str): The input text containing markers.
-            left (int): Number of characters to strip from the left.
-            right (int): Number of characters to strip from the right.
+            node_class (type[ast.ASTNode]): Class of the AST node to create (Bold, Italic, Strike, etc.).
+            content (str): Inner content to parse.
 
         Returns:
-            str: Text with markers removed.
+            ast.ASTNode: The created and populated AST node.
         """
-        if not text:
-            return ""
-        return text[left:-right]
+        parsed = self._parse_inline(content)
+
+        node = node_class()
+        for child in parsed:
+            node.add_child(child)
+        return node
 
     def _parse_match(self, match: re.Match) -> ast.ASTNode:
         """
@@ -203,99 +211,85 @@ class MarkdownConverter(BaseConverter):
         Raises:
             ValueError: If the match does not correspond to any recognized formatting.
         """
-        if match.group("code"):
-            return ast.InlineCode(code=self._strip_markers(match.group("code"), 1, 1))
-        if match.group("bolditalic"):
-            bold_node = ast.Bold()
-            italic_node = ast.Italic()
-            inner_text = self._strip_markers(match.group("bolditalic"), 3, 3)
-            italic_node.add_child(self._parse_fragment(inner_text))
-            bold_node.add_child(italic_node)
-            return bold_node
-        if match.group("bold"):
-            bold_node = ast.Bold()
-            inner_text = self._strip_markers(match.group("bold"), 2, 2)
-            bold_node.add_child(self._parse_fragment(inner_text))
-            return bold_node
-        if match.group("strike"):
-            strike_node = ast.Strike()
-            inner_text = self._strip_markers(match.group("strike"), 2, 2)
-            strike_node.add_child(self._parse_fragment(inner_text))
-            return strike_node
-        if match.group("italic"):
-            italic_node = ast.Italic()
-            inner_text = self._strip_markers(match.group("italic"), 1, 1)
-            italic_node.add_child(self._parse_fragment(inner_text))
-            return italic_node
+        mapping = {
+            "code": ast.InlineCode,
+            "tilde": ast.Strike,
+            "stars_bold": ast.Bold,
+            "stars_italic": ast.Italic,
+        }
+
+        for group_name, node_class in mapping.items():
+            if match.group(group_name):
+                if group_name == "code":
+                    return node_class(code=match.group("code_content"))
+                content = match.group(f"{group_name}_content")
+                return self._build_inline_node(node_class, content)
+
+        if match.group("stars"):
+            stars = match.group("stars")
+            content = match.group("stars_content")
+            star_count = len(stars)
+
+            if star_count % 2 == 0:
+                return self._build_inline_node(ast.Bold, content)
+            else:
+                bold_node = ast.Bold()
+                italic_node = self._build_inline_node(ast.Italic, content)
+                bold_node.add_child(italic_node)
+                return bold_node
+
         raise ValueError("Unrecognized inline match")
 
-    def _parse_fragment(self, text: str) -> ast.ASTNode:
-        """
-        Parses a text fragment to determine whether it contains inline formatting.
-        If formatting is detected, processes it recursively.
-
-        Args:
-            text (str): The text fragment to parse.
-
-        Returns:
-            ast.ASTNode: Either a plain Text node or a parsed Inline subtree.
-        """
-        if not self.inline_pattern.search(text):
-            return ast.Text(text)
-        return self._parse_inline(text)
-
-    def _parse_inline(self, text: str) -> ast.ASTNode:
+    def _parse_inline(self, text: str) -> list[ast.ASTNode]:
         """
         Parses text, possibly containing multiple inline markup elements,
-        and constructs a hierarchical Inline AST subtree.
+        and returns a list of AST nodes representing the parsed inline elements.
 
         Args:
             text (str): The full text containing potential inline formatting.
 
         Returns:
-            ast.ASTNode: A composite AST node representing all inline elements.
+            list[ASTNode]: A list of AST nodes parsed from the text.
         """
-        if not any(c in text for c in ["*", "_", "~", "`"]):
-            return ast.Text(text)
+        if not self.inline_pattern.search(text):
+            return [ast.Text(text)]
 
-        matches = list(self.inline_pattern.finditer(text))
-        if not matches:
-            return ast.Text(text)
+        children = []
+        pos = 0
+        while pos < len(text):
+            match = self.inline_pattern.search(text, pos)
+            if not match:
+                children.append(ast.Text(text[pos:]))
+                break
 
-        root = ast.Inline()
-        last_idx = 0
-        for match in matches:
             start, end = match.span()
 
-            if last_idx < start:
-                fragment = text[last_idx:start]
-                root.add_child(self._parse_fragment(fragment))
+            if start > pos:
+                children.append(ast.Text(text[pos:start]))
 
-            root.add_child(self._parse_match(match))
+            children.append(self._parse_match(match))
 
-            last_idx = end
+            pos = end
 
-        if last_idx < len(text):
-            fragment = text[last_idx:]
-            root.add_child(self._parse_fragment(fragment))
+        return children
 
-        if len(root.children) == 1:
-            return root.children[0]
-        return root
-
-    @process_prenode(NodeType.TEXT)
-    def _process_text(self, node: PreNode) -> ast.ASTNode:
+    @process_prenode(NodeType.PARAGRAPH)
+    def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
         """
-        Parses plain text for inline formatting like bold, italic, strike, code,
-        and returns a composite AST node
+        Parses parahgraph for inline formatting like bold, italic, strike, code,
 
         Args:
-            node (PreNode): A PreNode of type TEXT.
+            node (PreNode): A PreNode of type PARAGRAPH.
 
         Returns:
-            ast.Inline: An AST subtree containing parsed TEXT.
+            Node (Paragraph): A Paragraphed with parsed inline text
         """
-        return self._parse_inline(node.content)
+
+        paragraph_node = ast.Paragraph()
+        for inline_child in self._parse_inline(node.content):
+            paragraph_node.add_child(inline_child)
+
+        return paragraph_node
 
     def to_file(self, ast_root):
         """
