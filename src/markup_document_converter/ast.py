@@ -121,19 +121,6 @@ class Heading(ASTNode):
         """
         self.set_attribute("level", value)
 
-class Inline(ASTNode):
-    """
-    Represents a container for inline elements like text, bold, italic, code, etc.
-    """
-
-    def __init__(self, children=None):
-        """
-        Initialize a Bold node.
-
-        Args:
-            children (list, optional): Child nodes. Defaults to None.
-        """
-        super().__init__("inline", children)
 
 class Bold(ASTNode):
     """
