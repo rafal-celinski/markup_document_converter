@@ -49,6 +49,14 @@ class MarkdownConverter(BaseConverter):
             NodeType.LIST_ITEM: r"^(\s*)-\s.*\n",
         }
 
+        self.inline_pattern = re.compile(
+            r"(?P<code>`[^`]+?`)"
+            r"|(?P<bolditalic>\*\*\*[^*]+?\*\*\*)"
+            r"|(?P<bold>\*\*[^*]+?\*\*)"
+            r"|(?P<italic>(\*[^*]+?\*)|(_[^_]+?_))"
+            r"|(?P<strike>~~[^~]+?~~)"
+        )
+
         self.node_funcs = {}
 
         for attr_name in dir(self):
@@ -141,7 +149,7 @@ class MarkdownConverter(BaseConverter):
             ast.Heading: A heading node for the AST.
         """
         heading_level = len(re.findall(r"#+", node.content)[0])
-        node.content = node.content.lstrip("#").rstrip("\n")
+        node.content = node.content.lstrip("# ").rstrip("\n")
 
         heading = ast.Heading(level=heading_level)
         heading.add_child(self._process_text(node))
@@ -164,18 +172,130 @@ class MarkdownConverter(BaseConverter):
         list_item.add_child(self._process_text(node))
         return list_item
 
+    def _strip_markers(self, text: str, left: int, right: int) -> str:
+        """
+        Removes a fixed number of characters from both sides of the text.
+        Typically used to strip markup symbols like **, *, ~~, or `.
+
+        Args:
+            text (str): The input text containing markers.
+            left (int): Number of characters to strip from the left.
+            right (int): Number of characters to strip from the right.
+
+        Returns:
+            str: Text with markers removed.
+        """
+        if not text:
+            return ""
+        return text[left:-right]
+
+    def _parse_match(self, match: re.Match) -> ast.ASTNode:
+        """
+        Parses a single regex match corresponding to inline formatting,
+        and constructs the appropriate AST node (bold, italic, code, strike).
+
+        Args:
+            match (re.Match): A regex match containing inline markup.
+
+        Returns:
+            ast.ASTNode: A parsed AST node representing the matched formatting.
+
+        Raises:
+            ValueError: If the match does not correspond to any recognized formatting.
+        """
+        if match.group("code"):
+            return ast.InlineCode(code=self._strip_markers(match.group("code"), 1, 1))
+        if match.group("bolditalic"):
+            bold_node = ast.Bold()
+            italic_node = ast.Italic()
+            inner_text = self._strip_markers(match.group("bolditalic"), 3, 3)
+            italic_node.add_child(self._parse_fragment(inner_text))
+            bold_node.add_child(italic_node)
+            return bold_node
+        if match.group("bold"):
+            bold_node = ast.Bold()
+            inner_text = self._strip_markers(match.group("bold"), 2, 2)
+            bold_node.add_child(self._parse_fragment(inner_text))
+            return bold_node
+        if match.group("strike"):
+            strike_node = ast.Strike()
+            inner_text = self._strip_markers(match.group("strike"), 2, 2)
+            strike_node.add_child(self._parse_fragment(inner_text))
+            return strike_node
+        if match.group("italic"):
+            italic_node = ast.Italic()
+            inner_text = self._strip_markers(match.group("italic"), 1, 1)
+            italic_node.add_child(self._parse_fragment(inner_text))
+            return italic_node
+        raise ValueError("Unrecognized inline match")
+
+    def _parse_fragment(self, text: str) -> ast.ASTNode:
+        """
+        Parses a text fragment to determine whether it contains inline formatting.
+        If formatting is detected, processes it recursively.
+
+        Args:
+            text (str): The text fragment to parse.
+
+        Returns:
+            ast.ASTNode: Either a plain Text node or a parsed Inline subtree.
+        """
+        if not self.inline_pattern.search(text):
+            return ast.Text(text)
+        return self._parse_inline(text)
+
+    def _parse_inline(self, text: str) -> ast.ASTNode:
+        """
+        Parses text, possibly containing multiple inline markup elements,
+        and constructs a hierarchical Inline AST subtree.
+
+        Args:
+            text (str): The full text containing potential inline formatting.
+
+        Returns:
+            ast.ASTNode: A composite AST node representing all inline elements.
+        """
+        if not any(c in text for c in ["*", "_", "~", "`"]):
+            return ast.Text(text)
+
+        matches = list(self.inline_pattern.finditer(text))
+        if not matches:
+            return ast.Text(text)
+
+        root = ast.Inline()
+        last_idx = 0
+        for match in matches:
+            start, end = match.span()
+
+            if last_idx < start:
+                fragment = text[last_idx:start]
+                root.add_child(self._parse_fragment(fragment))
+
+            root.add_child(self._parse_match(match))
+
+            last_idx = end
+
+        if last_idx < len(text):
+            fragment = text[last_idx:]
+            root.add_child(self._parse_fragment(fragment))
+
+        if len(root.children) == 1:
+            return root.children[0]
+        return root
+
     @process_prenode(NodeType.TEXT)
     def _process_text(self, node: PreNode) -> ast.ASTNode:
         """
-        Converts a text PreNode into an AST Text node.
+        Parses plain text for inline formatting like bold, italic, strike, code,
+        and returns a composite AST node
 
         Args:
             node (PreNode): A PreNode of type TEXT.
 
         Returns:
-            ast.Text: A plain text node for the AST.
+            ast.Inline: An AST subtree containing parsed TEXT.
         """
-        return ast.Text(node.content)
+        return self._parse_inline(node.content)
 
     def to_file(self, ast_root):
         """
