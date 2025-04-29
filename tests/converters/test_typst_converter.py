@@ -23,76 +23,43 @@ class TestTypstConverter:
                     ],
                 ),
                 ast.Text("Curabitur hendrerit est sed velit molestie maximus"),
+                ast.Bold(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus"),
+                    ]
+                ),
             ]
         )
 
         result = document.convert(self.typst_converter)
 
         assert (
-            result
-            == "= Curabitur hendrerit est sed velit molestie maximus\n"
-            + "Curabitur hendrerit est sed velit molestie maximus"
+            result == "\n"
+            "= Curabitur hendrerit est sed velit molestie maximus\n"
+            "Curabitur hendrerit est sed velit molestie maximus"
+            "*Curabitur hendrerit est sed velit molestie maximus*\n"
         )
 
-    def test_convert_heading_level_1(self):
+    @pytest.mark.parametrize(
+        "level,expected",
+        [
+            (1, "\n= Curabitur hendrerit est sed velit molestie maximus\n"),
+            (2, "\n== Curabitur hendrerit est sed velit molestie maximus\n"),
+            (3, "\n=== Curabitur hendrerit est sed velit molestie maximus\n"),
+            (4, "\n==== Curabitur hendrerit est sed velit molestie maximus\n"),
+            (5, "\n===== Curabitur hendrerit est sed velit molestie maximus\n"),
+            (6, "\n====== Curabitur hendrerit est sed velit molestie maximus\n"),
+        ],
+    )
+    def test_convert_heading(self, level, expected):
         heading = ast.Heading(
-            level=1,
+            level=level,
             children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
         )
 
         result = heading.convert(self.typst_converter)
 
-        assert result == "= Curabitur hendrerit est sed velit molestie maximus"
-
-    def test_convert_heading_level_2(self):
-        heading = ast.Heading(
-            level=2,
-            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
-        )
-
-        result = heading.convert(self.typst_converter)
-
-        assert result == "== Curabitur hendrerit est sed velit molestie maximus"
-
-    def test_convert_heading_level_3(self):
-        heading = ast.Heading(
-            level=3,
-            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
-        )
-
-        result = heading.convert(self.typst_converter)
-
-        assert result == "=== Curabitur hendrerit est sed velit molestie maximus"
-
-    def test_convert_heading_level_4(self):
-        heading = ast.Heading(
-            level=4,
-            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
-        )
-
-        result = heading.convert(self.typst_converter)
-
-        assert result == "==== Curabitur hendrerit est sed velit molestie maximus"
-
-    def test_convert_heading_level_5(self):
-        heading = ast.Heading(
-            level=5,
-            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
-        )
-
-        result = heading.convert(self.typst_converter)
-
-        assert result == "===== Curabitur hendrerit est sed velit molestie maximus"
-
-    def test_convert_heading_level_6(self):
-        heading = ast.Heading(
-            level=6,
-            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
-        )
-
-        result = heading.convert(self.typst_converter)
-
-        assert result == "====== Curabitur hendrerit est sed velit molestie maximus"
+        assert result == expected
 
     def test_convert_bold(self):
         bold = ast.Bold(

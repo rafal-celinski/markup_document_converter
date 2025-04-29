@@ -3,28 +3,27 @@ import markup_document_converter.ast as ast
 
 
 class TypstConverter(BaseConverter):
+    def _add_markup(self, left, right, node):
+        chidren_result = "".join([child.convert(self) for child in node.children])
+        return f"{left}{chidren_result}{right}"
+
     def convert_default(self, node: ast.ASTNode) -> str:
         pass
 
     def convert_document(self, document: ast.Document) -> str:
-        chidren_result = "\n".join([child.convert(self) for child in document.children])
-        return chidren_result
+        return self._add_markup("", "\n", document)
 
     def convert_heading(self, heading: ast.Heading) -> str:
-        chidren_result = "".join([child.convert(self) for child in heading.children])
-        return f"{'=' * heading.level} {chidren_result}"
+        return self._add_markup(f"\n{'=' * heading.level} ", "\n", heading)
 
     def convert_bold(self, bold: ast.Bold) -> str:
-        chidren_result = "".join([child.convert(self) for child in bold.children])
-        return f"*{chidren_result}*"
+        return self._add_markup("*", "*", bold)
 
     def convert_italic(self, italic: ast.Italic) -> str:
-        chidren_result = "".join([child.convert(self) for child in italic.children])
-        return f"_{chidren_result}_"
+        return self._add_markup("_", "_", italic)
 
     def convert_strike(self, strike: ast.Strike) -> str:
-        chidren_result = "".join([child.convert(self) for child in strike.children])
-        return f"#strike[{chidren_result}]"
+        return self._add_markup("#strike[", "]", strike)
 
     def convert_text(self, text: ast.Text) -> str:
         return text.text
