@@ -7,28 +7,33 @@ class TypstConverter(BaseConverter):
         pass
 
     def convert_document(self, document: ast.Document) -> str:
-        pass
+        chidren_result = "\n".join([child.convert(self) for child in document.children])
+        return chidren_result
 
     def convert_heading(self, heading: ast.Heading) -> str:
-        pass
+        chidren_result = "".join([child.convert(self) for child in heading.children])
+        return f"{'=' * heading.level} {chidren_result}"
 
     def convert_bold(self, bold: ast.Bold) -> str:
-        pass
+        chidren_result = "".join([child.convert(self) for child in bold.children])
+        return f"*{chidren_result}*"
 
     def convert_italic(self, italic: ast.Italic) -> str:
-        pass
+        chidren_result = "".join([child.convert(self) for child in italic.children])
+        return f"_{chidren_result}_"
 
     def convert_strike(self, strike: ast.Strike) -> str:
-        pass
+        chidren_result = "".join([child.convert(self) for child in strike.children])
+        return f"#strike[{chidren_result}]"
 
     def convert_text(self, text: ast.Text) -> str:
-        pass
+        return text.text
 
     def convert_paragraph(self, paragraph: ast.Paragraph) -> str:
         pass
 
     def convert_line_break(self, line_break: ast.LineBreak) -> str:
-        pass
+        return
 
     def convert_blockquote(self, blockquote: ast.Blockquote) -> str:
         pass
