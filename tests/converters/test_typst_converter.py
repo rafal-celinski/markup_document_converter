@@ -1,6 +1,6 @@
 import markup_document_converter.ast as ast
 from markup_document_converter.converters.typst_converter import TypstConverter
-import pytest
+import pytest  # type: ignore
 
 
 @pytest.fixture(scope="class")
@@ -96,13 +96,29 @@ class TestTypstConverter:
         assert result == "Curabitur hendrerit est sed velit molestie maximus"
 
     def test_convert_paragraph(self):
-        pass
+        paragraph = ast.Paragraph(
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")]
+        )
+
+        result = paragraph.convert(self.typst_converter)
+
+        assert result == "\nCurabitur hendrerit est sed velit molestie maximus\n"
 
     def test_convert_line_break(self):
-        pass
+        line_break = ast.LineBreak()
+
+        result = line_break.convert(self.typst_converter)
+
+        assert result == "\\ "
 
     def test_convert_blockquote(self):
-        pass
+        blockquote = ast.Blockquote(
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")]
+        )
+
+        result = blockquote.convert(self.typst_converter)
+
+        assert result == "#quote[Curabitur hendrerit est sed velit molestie maximus]"
 
     def test_convert_list(self):
         pass
@@ -111,10 +127,18 @@ class TestTypstConverter:
         pass
 
     def test_convert_code_block(self):
-        pass
+        code_block = ast.CodeBlock(language="python", code="print('Hello World!')")
+
+        result = code_block.convert(self.typst_converter)
+
+        assert result == "```python\nprint('Hello World!')\n```"
 
     def test_convert_inline_code(self):
-        pass
+        inline_code = ast.InlineCode(language="python", code="print('Hello World!')")
+
+        result = inline_code.convert(self.typst_converter)
+
+        assert result == "```python print('Hello World!')```"
 
     def test_convert_image(self):
         pass
