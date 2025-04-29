@@ -358,18 +358,15 @@ class CodeBlock(ASTNode):
     Represents a code block with optional language specification.
     """
 
-    def __init__(self, code, language, children=None):
+    def __init__(self, code, language):
         """
         Initialize a CodeBlock node.
 
         Args:
             code (str): The code content.
             language (str): The programming language of the code.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "code_block", children, attributes={"code": code, "language": language}
-        )
+        super().__init__("code_block", attributes={"code": code, "language": language})
 
     @property
     def code(self):
@@ -414,15 +411,15 @@ class InlineCode(ASTNode):
     Represents an inline code span.
     """
 
-    def __init__(self, code, children=None):
+    def __init__(self, code, language):
         """
         Initialize an InlineCode node.
 
         Args:
             code (str): The inline code content.
-            children (list, optional): Child nodes. Defaults to None.
+            language (str): The programming language of the code.
         """
-        super().__init__("inline_code", children, attributes={"code": code})
+        super().__init__("inline_code", attributes={"code": code, "language": language})
 
     @property
     def code(self):
@@ -440,6 +437,23 @@ class InlineCode(ASTNode):
             value (str): The new code content.
         """
         self.set_attribute("code", value)
+
+    @property
+    def language(self):
+        """
+        str: The programming language of the code block.
+        """
+        return self.attributes.get("language", "")
+
+    @language.setter
+    def language(self, value):
+        """
+        Set the programming language.
+
+        Args:
+            value (str): The new language.
+        """
+        self.set_attribute("language", value)
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_inline_code(self)

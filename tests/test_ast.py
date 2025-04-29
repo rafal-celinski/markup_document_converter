@@ -251,22 +251,31 @@ class TestCodeBlock:
 
 class TestInlineCode:
     def test_init(self):
-        code = InlineCode("var x = 10")
+        code = InlineCode("var x = 10", "javascript")
         assert code.node_type == "inline_code"
         assert code.code == "var x = 10"
         assert code.attributes["code"] == "var x = 10"
+        assert code.language == "javascript"
+        assert code.attributes["language"] == "javascript"
 
     def test_code_property(self):
-        code = InlineCode("var x = 10")
+        code = InlineCode("var x = 10", "javascript")
         assert code.code == "var x = 10"
         code.code = "let y = 20"
         assert code.code == "let y = 20"
         assert code.attributes["code"] == "let y = 20"
 
+    def test_language_property(self):
+        code = InlineCode("print('hello')", "python")
+        assert code.language == "python"
+        code.language = "javascript"
+        assert code.language == "javascript"
+        assert code.attributes["language"] == "javascript"
+
     def test_empty_code(self):
-        code = InlineCode("")
+        code = InlineCode("", "")
         assert code.code == ""
-        assert code.attributes["code"] == ""
+        assert code.language == ""
 
 
 class TestImage:
