@@ -73,6 +73,9 @@ class ASTNode:
         """
         return self._node_type
 
+    def convert(self, converter):
+        return converter.convert_default(self)
+
 
 class Document(ASTNode):
     """
@@ -87,6 +90,9 @@ class Document(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("document", children)
+
+    def convert(self, converter):
+        return converter.convert_document(self)
 
 
 class Heading(ASTNode):
@@ -121,6 +127,9 @@ class Heading(ASTNode):
         """
         self.set_attribute("level", value)
 
+    def convert(self, converter):
+        return converter.convert_heading(self)
+
 
 class Bold(ASTNode):
     """
@@ -135,6 +144,9 @@ class Bold(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("bold", children)
+
+    def convert(self, converter):
+        return converter.convert_bold(self)
 
 
 class Italic(ASTNode):
@@ -151,6 +163,9 @@ class Italic(ASTNode):
         """
         super().__init__("italic", children)
 
+    def convert(self, converter):
+        return converter.convert_italic(self)
+
 
 class Strike(ASTNode):
     """
@@ -165,6 +180,9 @@ class Strike(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("strike", children)
+
+    def convert(self, converter):
+        return converter.convert_strike(self)
 
 
 class Text(ASTNode):
@@ -199,6 +217,9 @@ class Text(ASTNode):
         """
         self.set_attribute("text", value)
 
+    def convert(self, converter):
+        return converter.convert_text(self)
+
 
 class Paragraph(ASTNode):
     """
@@ -213,6 +234,9 @@ class Paragraph(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("paragraph", children)
+
+    def convert(self, converter):
+        return converter.convert_paragraph(self)
 
 
 class LineBreak(ASTNode):
@@ -229,6 +253,9 @@ class LineBreak(ASTNode):
         """
         super().__init__("line_break", children)
 
+    def convert(self, converter):
+        return converter.convert_line_break(self)
+
 
 class Blockquote(ASTNode):
     """
@@ -243,6 +270,9 @@ class Blockquote(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("blockquote", children)
+
+    def convert(self, converter):
+        return converter.convert_blockquote(self)
 
 
 class List(ASTNode):
@@ -277,6 +307,9 @@ class List(ASTNode):
         """
         self.set_attribute("list_type", value)
 
+    def convert(self, converter):
+        return converter.convert_list(self)
+
 
 class ListItem(ASTNode):
     """
@@ -309,6 +342,9 @@ class ListItem(ASTNode):
             value (int): The new order.
         """
         self.set_attribute("order", value)
+
+    def convert(self, converter):
+        return converter.convert_list_item(self)
 
 
 class CodeBlock(ASTNode):
@@ -363,6 +399,9 @@ class CodeBlock(ASTNode):
         """
         self.set_attribute("language", value)
 
+    def convert(self, converter):
+        return converter.convert_code_block(self)
+
 
 class InlineCode(ASTNode):
     """
@@ -395,6 +434,9 @@ class InlineCode(ASTNode):
             value (str): The new code content.
         """
         self.set_attribute("code", value)
+
+    def convert(self, converter):
+        return converter.convert_inline_code(self)
 
 
 class Image(ASTNode):
@@ -449,6 +491,9 @@ class Image(ASTNode):
         """
         self.set_attribute("alt_text", value)
 
+    def convert(self, converter):
+        return converter.convert_image(self)
+
 
 class Link(ASTNode):
     """
@@ -500,6 +545,9 @@ class Link(ASTNode):
         """
         self.set_attribute("text", value)
 
+    def convert(self, converter):
+        return converter.convert_link(self)
+
 
 class HorizontalRule(ASTNode):
     """
@@ -515,6 +563,9 @@ class HorizontalRule(ASTNode):
         """
         super().__init__("horizontal_rule", children)
 
+    def convert(self, converter):
+        return converter.convert_horizontal_rule(self)
+
 
 class Table(ASTNode):
     """
@@ -529,6 +580,9 @@ class Table(ASTNode):
             children (list, optional): Child nodes. Defaults to None.
         """
         super().__init__("table", children)
+
+    def convert(self, converter):
+        return converter.convert_table(self)
 
 
 class TableRow(ASTNode):
@@ -562,6 +616,9 @@ class TableRow(ASTNode):
             value (bool): True if the row is a header, False otherwise.
         """
         self.set_attribute("is_header", value)
+
+    def convert(self, converter):
+        return converter.convert_table_row(self)
 
 
 class TableCell(ASTNode):
@@ -597,6 +654,9 @@ class TableCell(ASTNode):
         """
         self.set_attribute("alignment", value)
 
+    def convert(self, converter):
+        return converter.convert_table_cell(self)
+
 
 class TaskListItem(ASTNode):
     """
@@ -629,3 +689,6 @@ class TaskListItem(ASTNode):
             value (bool): The new checked state.
         """
         self.set_attribute("checked", value)
+
+    def convert(self, converter):
+        return converter.convert_task_list_item(self)
