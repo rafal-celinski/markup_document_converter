@@ -526,8 +526,7 @@ class Link(ASTNode):
 
         Args:
             source (str): The URL or link target.
-            text (str): The link text.
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents link text.
         """
         super().__init__("link", children, attributes={"source": source, "text": text})
 
@@ -547,23 +546,6 @@ class Link(ASTNode):
             value (str): The new link target.
         """
         self.set_attribute("source", value)
-
-    @property
-    def text(self):
-        """
-        str: The link text.
-        """
-        return self.attributes.get("text", "")
-
-    @text.setter
-    def text(self, value):
-        """
-        Set the link text.
-
-        Args:
-            value (str): The new link text.
-        """
-        self.set_attribute("text", value)
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_link(self)
