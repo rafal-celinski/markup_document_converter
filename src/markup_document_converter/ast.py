@@ -318,12 +318,12 @@ class ListItem(ASTNode):
     Represents an item within a list.
     """
 
-    def __init__(self, order, children=None):
+    def __init__(self, order=None, children=None):
         """
         Initialize a ListItem node.
 
         Args:
-            order (int): The order of the item in the list.
+            order (int, optional): The order of the item in the list.
             children (list, optional): Child nodes. Defaults to None. Represents list element body.
         """
         super().__init__("list_item", children, attributes={"order": order})
