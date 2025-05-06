@@ -112,7 +112,7 @@ class Heading(ASTNode):
 
         Args:
             level (int): Heading level (e.g., 1 for H1).
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Reprezents headning text
         """
         super().__init__("heading", children, attributes={"level": level})
 
@@ -147,7 +147,7 @@ class Bold(ASTNode):
         Initialize a Bold node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Reprezents bold text
         """
         super().__init__("bold", children)
 
@@ -165,7 +165,7 @@ class Italic(ASTNode):
         Initialize an Italic node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents italic text
         """
         super().__init__("italic", children)
 
@@ -183,7 +183,7 @@ class Strike(ASTNode):
         Initialize a Strike node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents strike text.
         """
         super().__init__("strike", children)
 
@@ -196,15 +196,14 @@ class Text(ASTNode):
     Represents a text node containing a string.
     """
 
-    def __init__(self, text, children=None):
+    def __init__(self, text):
         """
         Initialize a Text node.
 
         Args:
             text (str): The text content.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("text", children, attributes={"text": text})
+        super().__init__("text", attributes={"text": text})
 
     @property
     def text(self):
@@ -237,7 +236,7 @@ class Paragraph(ASTNode):
         Initialize a Paragraph node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents paragraph body
         """
         super().__init__("paragraph", children)
 
@@ -250,14 +249,11 @@ class LineBreak(ASTNode):
     Represents a line break in the document.
     """
 
-    def __init__(self, children=None):
+    def __init__(self):
         """
         Initialize a LineBreak node.
-
-        Args:
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("line_break", children)
+        super().__init__("line_break")
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_line_break(self)
@@ -273,7 +269,7 @@ class Blockquote(ASTNode):
         Initialize a Blockquote node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents Blockquote body
         """
         super().__init__("blockquote", children)
 
@@ -292,7 +288,7 @@ class List(ASTNode):
 
         Args:
             list_type (str): The type of the list ("ordered" or "unordered").
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents list items.
         """
         super().__init__("list", children, attributes={"list_type": list_type})
 
@@ -328,7 +324,7 @@ class ListItem(ASTNode):
 
         Args:
             order (int): The order of the item in the list.
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents list element body.
         """
         super().__init__("list_item", children, attributes={"order": order})
 
@@ -464,18 +460,15 @@ class Image(ASTNode):
     Represents an image node with source and alt text.
     """
 
-    def __init__(self, source, alt_text, children=None):
+    def __init__(self, source, alt_text):
         """
         Initialize an Image node.
 
         Args:
             source (str): The image source URL or path.
             alt_text (str): The alternative text for the image.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "image", children, attributes={"source": source, "alt_text": alt_text}
-        )
+        super().__init__("image", attributes={"source": source, "alt_text": alt_text})
 
     @property
     def source(self):
@@ -556,14 +549,11 @@ class HorizontalRule(ASTNode):
     Represents a horizontal rule (thematic break) in the document.
     """
 
-    def __init__(self, children=None):
+    def __init__(self):
         """
         Initialize a HorizontalRule node.
-
-        Args:
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("horizontal_rule", children)
+        super().__init__("horizontal_rule")
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_horizontal_rule(self)
@@ -579,7 +569,7 @@ class Table(ASTNode):
         Initialize a Table node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents table rows.
         """
         super().__init__("table", children)
 
@@ -598,7 +588,7 @@ class TableRow(ASTNode):
 
         Args:
             is_header (bool, optional): Whether the row is a header. Defaults to False.
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents table cells.
         """
         super().__init__("table_row", children, attributes={"is_header": is_header})
 
@@ -635,7 +625,7 @@ class TableCell(ASTNode):
         Args:
             alignment (str, optional): The cell alignment ("left", "center","right").
                 Defaults to "left".
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents cell body.
         """
         super().__init__("table_cell", children, attributes={"alignment": alignment})
 
@@ -665,15 +655,14 @@ class TaskListItem(ASTNode):
     Represents a task list item with a checked/unchecked state.
     """
 
-    def __init__(self, checked=False, children=None):
+    def __init__(self, checked=False):
         """
         Initialize a TaskListItem node.
 
         Args:
             checked (bool, optional): Whether the task is checked. Defaults to False.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("task_list_item", children, attributes={"checked": checked})
+        super().__init__("task_list_item", attributes={"checked": checked})
 
     @property
     def checked(self):
