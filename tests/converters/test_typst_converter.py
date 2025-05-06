@@ -120,11 +120,110 @@ class TestTypstConverter:
 
         assert result == "#quote[Curabitur hendrerit est sed velit molestie maximus]"
 
-    def test_convert_list(self):
-        pass
+    def test_convert_ordered_list(self):
+        ordered_list = ast.List(
+            list_type="ordered",
+            children=[
+                ast.ListItem(
+                    order=1,
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ],
+                ),
+                ast.ListItem(
+                    order=2,
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ],
+                ),
+                ast.ListItem(
+                    order=3,
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ],
+                ),
+            ],
+        )
+
+        result = ordered_list.convert(self.typst_converter)
+
+        assert (
+            result
+            == "\n1. Curabitur hendrerit est sed velit molestie maximus\n"
+            + "2. Curabitur hendrerit est sed velit molestie maximus\n"
+            + "3. Curabitur hendrerit est sed velit molestie maximus\n"
+        )
+
+    def test_convert_autoordered_list(self):
+        ordered_list = ast.List(
+            list_type="ordered",
+            children=[
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+            ],
+        )
+
+        result = ordered_list.convert(self.typst_converter)
+
+        assert (
+            result
+            == "\n+ Curabitur hendrerit est sed velit molestie maximus\n"
+            + "+ Curabitur hendrerit est sed velit molestie maximus\n"
+            + "+ Curabitur hendrerit est sed velit molestie maximus\n"
+        )
+
+    def test_convert_unordered_list(self):
+        unordered_list = ast.List(
+            list_type="unordered",
+            children=[
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+                ast.ListItem(
+                    children=[
+                        ast.Text("Curabitur hendrerit est sed velit molestie maximus")
+                    ]
+                ),
+            ],
+        )
+
+        result = unordered_list.convert(self.typst_converter)
+
+        assert (
+            result
+            == "\n- Curabitur hendrerit est sed velit molestie maximus\n"
+            + "- Curabitur hendrerit est sed velit molestie maximus\n"
+            + "- Curabitur hendrerit est sed velit molestie maximus\n"
+        )
 
     def test_convert_list_item(self):
-        pass
+        list_item = ast.ListItem(
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")]
+        )
+
+        result = list_item.convert(self.typst_converter)
+
+        assert result == "Curabitur hendrerit est sed velit molestie maximus"
 
     def test_convert_code_block(self):
         code_block = ast.CodeBlock(language="python", code="print('Hello World!')")
@@ -141,22 +240,105 @@ class TestTypstConverter:
         assert result == "```python print('Hello World!')```"
 
     def test_convert_image(self):
-        pass
+        image = ast.Image(source="image.png", alt_text="example image")
 
-    def test_convert_link(self):
-        pass
+        result = image.convert(self.typst_converter)
+
+        assert result == '#image("image.png", alt: "example image")'
+
+    def test_convert_link_with_text(self):
+        link = ast.Link(
+            source="example.com",
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
+        )
+
+        result = link.convert(self.typst_converter)
+
+        assert (
+            result
+            == '#link("example.com")[Curabitur hendrerit est sed velit molestie maximus]'
+        )
+
+    def test_convert_link_without_text(self):
+        link = ast.Link(source="example.com")
+
+        result = link.convert(self.typst_converter)
+
+        assert result == '#link("example.com")'
 
     def test_convert_horizontal_rule(self):
-        pass
+        hr = ast.HorizontalRule()
+
+        result = hr.convert(self.typst_converter)
+
+        assert result == "#line(length: 100%)"
 
     def test_convert_table(self):
-        pass
+        table = ast.Table(
+            children=[
+                ast.TableRow(
+                    is_header=True,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_00")]),
+                        ast.TableCell(children=[ast.Text("cell_01")]),
+                        ast.TableCell(children=[ast.Text("cell_02")]),
+                    ],
+                ),
+                ast.TableRow(
+                    is_header=False,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_10")]),
+                        ast.TableCell(children=[ast.Text("cell_11")]),
+                        ast.TableCell(children=[ast.Text("cell_12")]),
+                    ],
+                ),
+                ast.TableRow(
+                    is_header=False,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_20")]),
+                        ast.TableCell(children=[ast.Text("cell_21")]),
+                    ],
+                ),
+            ]
+        )
 
-    def test_convert_table_row(self):
-        pass
+        result = table.convert(self.typst_converter)
+
+        assert (
+            result
+            == "\n#table(\n"
+            + "\tcolumns: 3,\n"
+            + "\t[cell_00], [cell_01], [cell_02], \n"
+            + "\t[cell_10], [cell_11], [cell_12], \n"
+            + "\t[cell_20], [cell_21], [], \n"
+            + ")\n"
+        )
 
     def test_convert_table_cell(self):
-        pass
+        cell = ast.TableCell(
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")]
+        )
 
-    def test_convert_task_list_item(self):
-        pass
+        result = cell.convert(self.typst_converter)
+
+        assert result == "Curabitur hendrerit est sed velit molestie maximus"
+
+    def test_convert_task_list_item_checked(self):
+        task_list_item = ast.TaskListItem(
+            checked=True,
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
+        )
+
+        result = task_list_item.convert(self.typst_converter)
+
+        assert result == "\n[x] Curabitur hendrerit est sed velit molestie maximus\n"
+
+    def test_convert_task_list_item_unchecked(self):
+        task_list_item = ast.TaskListItem(
+            checked=False,
+            children=[ast.Text("Curabitur hendrerit est sed velit molestie maximus")],
+        )
+
+        result = task_list_item.convert(self.typst_converter)
+
+        assert result == "\n[ ] Curabitur hendrerit est sed velit molestie maximus\n"
