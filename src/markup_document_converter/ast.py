@@ -283,7 +283,7 @@ class ListItem(ASTNode):
     Represents an item within a list.
     """
 
-    def __init__(self, order, children=None):
+    def __init__(self, order, nesting, children=None):
         """
         Initialize a ListItem node.
 
@@ -291,7 +291,9 @@ class ListItem(ASTNode):
             order (int): The order of the item in the list.
             children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("list_item", children, attributes={"order": order})
+        super().__init__(
+            "list_item", children, attributes={"order": order, "nesting": nesting}
+        )
 
     @property
     def order(self):
@@ -299,6 +301,13 @@ class ListItem(ASTNode):
         int: The order of the list item.
         """
         return self.attributes.get("order", "")
+
+    @property
+    def nesting(self):
+        """
+        int: Nesting level of the list item
+        """
+        return self.attributes.get("nesting", 0)
 
     @order.setter
     def order(self, value):
@@ -309,6 +318,16 @@ class ListItem(ASTNode):
             value (int): The new order.
         """
         self.set_attribute("order", value)
+
+    @nesting.setter
+    def nesting(self, value):
+        """
+        Set the nesting level of the list item
+
+        Args:
+            value (int): The new nesting level
+        """
+        self.set_attribute("nesting", value)
 
 
 class CodeBlock(ASTNode):

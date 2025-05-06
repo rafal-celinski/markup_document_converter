@@ -8,7 +8,9 @@ from enum import Enum, auto
 class NodeType(Enum):
     HEADING = auto()
     LIST_ITEM = auto()
+    TASK_LIST_ITEM = auto()
     PARAGRAPH = auto()
+    LINE_BREAK = auto()
 
 
 @dataclass(order=True)
@@ -46,7 +48,7 @@ class MarkdownConverter(BaseConverter):
 
         self.patterns = {
             NodeType.HEADING: r"^(#+)\s.*\n",
-            NodeType.LIST_ITEM: r"^(?P<indent>\s*)-\s.*(?:\n(?!\s*[-*+]|\s*\n).*)*",
+            NodeType.LIST_ITEM: r"^\s*-\s.*(?:\n(?!\s*[-*+]|\s*\n).*)*",
         }
 
         self.inline_pattern = re.compile(
@@ -81,9 +83,56 @@ class MarkdownConverter(BaseConverter):
 
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
-            root.add_child(handler(node))
+            ast_node = handler(node)
+            root.add_child(ast_node)
+
+        root = self._group_lists(root)
 
         return root
+
+    def _group_lists(self, original_root: ast.ASTNode):
+        grouped_root = ast.Document()
+
+        def merger(idx, nesting_lvl, list_root):
+            curr_list = None
+            while idx < len(original_root.children):
+                node = original_root.children[idx]
+                if node.node_type == "list_item" and node.nesting == nesting_lvl:
+                    if curr_list and curr_list.list_type == node.order:
+                        curr_list.add_child(node)
+                        idx += 1
+                        continue
+                    elif curr_list and curr_list.list_type != node.order:
+                        list_root.add_child(curr_list)
+                        curr_list = ast.List(list_type=node.order, children=[node])
+                        idx += 1
+                        continue
+                    else:
+                        curr_list = ast.List(list_type=node.order, children=[node])
+                        idx += 1
+                        continue
+                elif node.node_type == "list_item" and node.nesting < nesting_lvl:
+                    list_root.add_child(curr_list)
+                    return idx
+                elif node.node_type == "list_item" and node.nesting > nesting_lvl:
+                    new_list_root = ast.ListItem(order=node.order, nesting=node.nesting)
+                    curr_list.add_child(new_list_root)
+                    idx = merger(idx, node.nesting, new_list_root)
+                elif node.node_type != "list_item":
+                    if curr_list:
+                        list_root.add_child(curr_list)
+                        if nesting_lvl != 0:
+                            return idx
+                        else:
+                            curr_list = None
+                    else:
+                        list_root.add_child(node)
+                        idx += 1
+            if curr_list:
+                list_root.add_child(curr_list)
+
+        merger(0, 0, grouped_root)
+        return grouped_root
 
     def _get_file_contents(self, file_path: str) -> str:
         """
@@ -101,43 +150,72 @@ class MarkdownConverter(BaseConverter):
         if text[-1] != "\n":
             text += "\n"
 
-        return text
+        lines = text.splitlines(keepends=True)
 
-    def _generate_prenodes(self, text: str) -> list[PreNode]:
+        blocks = []
+        current_block = ""
+
+        for line in lines:
+            if line.strip() == "":
+                if current_block:
+                    blocks.append(current_block)
+                    current_block = ""
+            else:
+                current_block += line
+
+        if current_block:
+            blocks.append(current_block)
+
+        return blocks
+
+    def _generate_prenodes(self, blocks: list[str]) -> list[PreNode]:
         pre_nodes = []
-        for name in self.patterns:
-            pattern = re.compile(self.patterns[name], re.MULTILINE)
-            for match in pattern.finditer(text):
-                pre_nodes.append(PreNode(match.start(), match.group(), name))
+        for block in blocks:
+            block_pre_nodes = []
+            for name in self.patterns:
+                pattern = re.compile(self.patterns[name], re.MULTILINE)
+                for match in pattern.finditer(block):
+                    block_pre_nodes.append(PreNode(match.start(), match.group(), name))
 
-        pre_nodes.sort()
+            block_pre_nodes.sort()
 
-        filled_nodes = []
-        current_pos = 0
-        for node in pre_nodes:
-            if current_pos < node.start_idx:
-                unmatched_text = text[current_pos : node.start_idx]
+            block_filled_nodes = []
+            current_pos = 0
+            for node in block_pre_nodes:
+                if current_pos < node.start_idx:
+                    unmatched_text = block[current_pos : node.start_idx]
+                    paragraphs = re.split(r"\n\s*\n", unmatched_text)
+                    offset = current_pos
+                    for para in paragraphs:
+                        para = para.strip()
+                        if para:
+                            block_filled_nodes.append(
+                                PreNode(offset, para, NodeType.PARAGRAPH)
+                            )
+                        offset += len(para) + 2
+                block_filled_nodes.append(node)
+                current_pos = node.start_idx + len(node.content)
+
+            if current_pos < len(block):
+                unmatched_text = block[current_pos:]
                 paragraphs = re.split(r"\n\s*\n", unmatched_text)
                 offset = current_pos
                 for para in paragraphs:
                     para = para.strip()
                     if para:
-                        filled_nodes.append(PreNode(offset, para, NodeType.PARAGRAPH))
+                        block_filled_nodes.append(
+                            PreNode(offset, para, NodeType.PARAGRAPH)
+                        )
                     offset += len(para) + 2
-            filled_nodes.append(node)
-            current_pos = node.start_idx + len(node.content)
+            for node in block_filled_nodes:
+                pre_nodes.append(node)
+            pre_nodes.append(PreNode(0, "", NodeType.LINE_BREAK))
 
-        if current_pos < len(text):
-            unmatched_text = text[current_pos:]
-            paragraphs = re.split(r"\n\s*\n", unmatched_text)
-            offset = current_pos
-            for para in paragraphs:
-                para = para.strip()
-                if para:
-                    filled_nodes.append(PreNode(offset, para, NodeType.PARAGRAPH))
-                offset += len(para) + 2
+        return pre_nodes
 
-        return sorted(filled_nodes, key=lambda n: n.start_idx)
+    @process_prenode(NodeType.LINE_BREAK)
+    def _process_line_break(self, node: PreNode) -> ast.ASTNode:
+        return ast.LineBreak()
 
     @process_prenode(NodeType.HEADING)
     def _process_heading(self, node: PreNode) -> ast.ASTNode:
@@ -158,7 +236,7 @@ class MarkdownConverter(BaseConverter):
             heading.add_child(child)
         return heading
 
-    ## TODO: Correct striping and level detection
+    # TODO: Correct striping and level detection
     @process_prenode(NodeType.LIST_ITEM)
     def _process_list_item(self, node: PreNode) -> ast.ASTNode:
         """
@@ -170,9 +248,9 @@ class MarkdownConverter(BaseConverter):
         Returns:
             ast.ListItem: A list item node for the AST.
         """
+        nesting_level = len(re.findall(r"(\s*)-", node.content)[0])
         node.content = node.content.lstrip(" -")
-
-        list_item = ast.ListItem(order="unordered")
+        list_item = ast.ListItem(order="unordered", nesting=nesting_level)
         for child in self._parse_inline(node.content):
             list_item.add_child(child)
         return list_item
@@ -184,7 +262,8 @@ class MarkdownConverter(BaseConverter):
         Helper function to create an inline AST node and parse its children from content.
 
         Args:
-            node_class (type[ast.ASTNode]): Class of the AST node to create (Bold, Italic, Strike, etc.).
+            node_class (type[ast.ASTNode]):
+                Class of the AST node to create (Bold, Italic, Strike, etc.).
             content (str): Inner content to parse.
 
         Returns:
