@@ -309,31 +309,26 @@ class TestImage:
 
 class TestLink:
     def test_init(self):
-        link = Link("https://example.com", "Example")
+        link = Link("https://example.com")
         assert link.node_type == "link"
         assert link.source == "https://example.com"
-        assert link.text == "Example"
         assert link.attributes["source"] == "https://example.com"
-        assert link.attributes["text"] == "Example"
 
     def test_source_property(self):
-        link = Link("https://example.com", "Example")
+        link = Link("https://example.com")
         assert link.source == "https://example.com"
         link.source = "https://new-example.com"
         assert link.source == "https://new-example.com"
         assert link.attributes["source"] == "https://new-example.com"
 
-    def test_text_property(self):
-        link = Link("https://example.com", "Example")
-        assert link.text == "Example"
-        link.text = "New Example"
-        assert link.text == "New Example"
-        assert link.attributes["text"] == "New Example"
-
     def test_empty_values(self):
         link = Link("", "")
         assert link.source == ""
-        assert link.text == ""
+
+    def test_init_with_children(self):
+        child = Text("Quoted text")
+        link = Link("https://example.com", children=[child])
+        assert link.children == [child]
 
 
 class TestHorizontalRule:

@@ -513,7 +513,7 @@ class Link(ASTNode):
     Represents a hyperlink node.
     """
 
-    def __init__(self, source, text, children=None):
+    def __init__(self, source, children=None):
         """
         Initialize a Link node.
 
@@ -521,7 +521,7 @@ class Link(ASTNode):
             source (str): The URL or link target.
             children (list, optional): Child nodes. Defaults to None. Represents link text.
         """
-        super().__init__("link", children, attributes={"source": source, "text": text})
+        super().__init__("link", children=children, attributes={"source": source})
 
     @property
     def source(self):
@@ -655,14 +655,17 @@ class TaskListItem(ASTNode):
     Represents a task list item with a checked/unchecked state.
     """
 
-    def __init__(self, checked=False):
+    def __init__(self, checked=False, children=None):
         """
         Initialize a TaskListItem node.
 
         Args:
             checked (bool, optional): Whether the task is checked. Defaults to False.
+            children (list, optional): List of children. Represents body of task list item
         """
-        super().__init__("task_list_item", attributes={"checked": checked})
+        super().__init__(
+            "task_list_item", attributes={"checked": checked}, children=children
+        )
 
     @property
     def checked(self):
