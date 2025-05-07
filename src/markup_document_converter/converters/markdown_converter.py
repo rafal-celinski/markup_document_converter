@@ -3,24 +3,26 @@ import src.markup_document_converter.ast as ast
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Callable, List
 
 
 class NodeType(Enum):
     HEADING = auto()
-    LIST_ITEM = auto()
+    UR_LIST_ITEM = auto()
+    OR_LIST_ITEM = auto()
     TASK_LIST_ITEM = auto()
     PARAGRAPH = auto()
     LINE_BREAK = auto()
+    TEXT = auto()
 
 
 @dataclass(order=True)
 class PreNode:
-    start_idx: int
     content: str
     node_type: NodeType
 
 
-def process_prenode(node_type: NodeType):
+def process_prenode(node_type: NodeType) -> Callable:
     """
     Decorator used to register processing functions for specific NodeTypes.
 
@@ -31,7 +33,7 @@ def process_prenode(node_type: NodeType):
         Callable: A decorator function that adds `_node_type` attribute to the handler.
     """
 
-    def decorator(func):
+    def decorator(func: Callable) -> Callable:
         func._node_type = node_type
         return func
 
@@ -39,16 +41,19 @@ def process_prenode(node_type: NodeType):
 
 
 class MarkdownConverter(BaseConverter):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the MarkdownConverter. Compiles regex patterns and registers
         node processing methods decorated with `@process_prenode`.
         """
         super().__init__()
 
-        self.patterns = {
+        self.patterns: dict[NodeType, str] = {
             NodeType.HEADING: r"^(#+)\s.*\n",
-            NodeType.LIST_ITEM: r"^\s*-\s.*(?:\n(?!\s*[-*+]|\s*\n).*)*",
+            NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n",
+            NodeType.LINE_BREAK: r"^\s*$",
+            # Keep TEXT at the end so that is it default in case no pattern matches
+            NodeType.TEXT: r".*",
         }
 
         self.inline_pattern = re.compile(
@@ -60,7 +65,7 @@ class MarkdownConverter(BaseConverter):
             re.DOTALL,
         )
 
-        self.node_funcs = {}
+        self.node_funcs: dict[NodeType, Callable[[PreNode], ast.ASTNode]] = {}
 
         for attr_name in dir(self):
             method = getattr(self, attr_name)
@@ -77,64 +82,106 @@ class MarkdownConverter(BaseConverter):
         Returns:
             ASTNode: Parsed AST tree representing the structure of the document.
         """
-        text = self._get_file_contents(input_file)
+        lines = self._get_file_contents(input_file)
         root = ast.Document()
-        pre_nodes = self._generate_prenodes(text)
+
+        pre_nodes = self._generate_prenodes(lines)
+        pre_nodes = self._group_pre_nodes(pre_nodes)
 
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
             ast_node = handler(node)
             root.add_child(ast_node)
 
-        root = self._group_lists(root)
+        return self._group_lists(root)
 
-        return root
+    def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
+        """
+        Groups consecutive TEXT nodes into PARAGRAPH nodes and retains single-line node types.
 
-    def _group_lists(self, original_root: ast.ASTNode):
+        Args:
+            pre_nodes (List[PreNode]): Flat list of parsed PreNodes.
+
+        Returns:
+            List[PreNode]: Grouped PreNodes, ready for processing into AST nodes.
+        """
+        single_types = [NodeType.HEADING, NodeType.LINE_BREAK]
+        grouped = []
+        idx = 0
+        grouping_node = None
+
+        while idx < len(pre_nodes):
+            node = pre_nodes[idx]
+            if node.node_type in single_types:
+                if grouping_node:
+                    grouped.append(grouping_node)
+                    grouping_node = None
+                grouped.append(node)
+            else:
+                if not grouping_node:
+                    grouping_node = node
+                else:
+                    if node.node_type == NodeType.TEXT:
+                        grouping_node.content += node.content
+                    else:
+                        grouped.append(grouping_node)
+                        grouping_node = node
+                if grouping_node and grouping_node.node_type == NodeType.TEXT:
+                    grouping_node.node_type = NodeType.PARAGRAPH
+            idx += 1
+
+        if grouping_node:
+            grouped.append(grouping_node)
+
+        return grouped
+
+    def _group_lists(self, original_root: ast.ASTNode) -> ast.ASTNode:
+        """
+        Groups list item nodes into nested list structures in the AST.
+
+        Args:
+            original_root (ASTNode): Root node with flat children.
+
+        Returns:
+            ASTNode: Root node with grouped list structures.
+        """
         grouped_root = ast.Document()
 
-        def merger(idx, nesting_lvl, list_root):
+        def merger(idx: int, nesting_lvl: int, list_root: ast.ASTNode) -> int:
             curr_list = None
             while idx < len(original_root.children):
                 node = original_root.children[idx]
                 if node.node_type == "list_item" and node.nesting == nesting_lvl:
                     if curr_list and curr_list.list_type == node.order:
                         curr_list.add_child(node)
-                        idx += 1
-                        continue
-                    elif curr_list and curr_list.list_type != node.order:
-                        list_root.add_child(curr_list)
-                        curr_list = ast.List(list_type=node.order, children=[node])
-                        idx += 1
-                        continue
                     else:
+                        if curr_list:
+                            list_root.add_child(curr_list)
                         curr_list = ast.List(list_type=node.order, children=[node])
-                        idx += 1
-                        continue
+                    idx += 1
                 elif node.node_type == "list_item" and node.nesting < nesting_lvl:
-                    list_root.add_child(curr_list)
+                    if curr_list:
+                        list_root.add_child(curr_list)
                     return idx
                 elif node.node_type == "list_item" and node.nesting > nesting_lvl:
                     new_list_root = ast.ListItem(order=node.order, nesting=node.nesting)
-                    curr_list.add_child(new_list_root)
+                    if curr_list:
+                        curr_list.add_child(new_list_root)
                     idx = merger(idx, node.nesting, new_list_root)
-                elif node.node_type != "list_item":
+                else:
                     if curr_list:
                         list_root.add_child(curr_list)
-                        if nesting_lvl != 0:
-                            return idx
-                        else:
-                            curr_list = None
-                    else:
-                        list_root.add_child(node)
-                        idx += 1
+                        curr_list = None
+                    list_root.add_child(node)
+                    idx += 1
             if curr_list:
                 list_root.add_child(curr_list)
+            return idx
 
         merger(0, 0, grouped_root)
         return grouped_root
 
-    def _get_file_contents(self, file_path: str) -> str:
+    def _get_file_contents(self, file_path: str) -> List[str]:
         """
         Reads the file content and ensures it ends with a newline.
 
@@ -142,153 +189,64 @@ class MarkdownConverter(BaseConverter):
             file_path (str): Path to the file.
 
         Returns:
-            str: File contents as a single string.
+            List[str]: File lines with newlines preserved.
         """
         with open(file_path, "r") as fp:
             text = fp.read()
 
-        if text[-1] != "\n":
+        if not text.endswith("\n"):
             text += "\n"
 
-        lines = text.splitlines(keepends=True)
+        return text.splitlines(keepends=True)
 
-        blocks = []
-        current_block = ""
+    def _generate_prenodes(self, lines: List[str]) -> List[PreNode]:
+        """
+        Converts lines of text into PreNodes using pattern matching.
 
-        for line in lines:
-            if line.strip() == "":
-                if current_block:
-                    blocks.append(current_block)
-                    current_block = ""
-            else:
-                current_block += line
+        Args:
+            lines (List[str]): Lines from input file.
 
-        if current_block:
-            blocks.append(current_block)
-
-        return blocks
-
-    def _generate_prenodes(self, blocks: list[str]) -> list[PreNode]:
+        Returns:
+            List[PreNode]: Generated PreNodes.
+        """
         pre_nodes = []
-        for block in blocks:
-            block_pre_nodes = []
-            for name in self.patterns:
-                pattern = re.compile(self.patterns[name], re.MULTILINE)
-                for match in pattern.finditer(block):
-                    block_pre_nodes.append(PreNode(match.start(), match.group(), name))
-
-            block_pre_nodes.sort()
-
-            block_filled_nodes = []
-            current_pos = 0
-            for node in block_pre_nodes:
-                if current_pos < node.start_idx:
-                    unmatched_text = block[current_pos : node.start_idx]
-                    paragraphs = re.split(r"\n\s*\n", unmatched_text)
-                    offset = current_pos
-                    for para in paragraphs:
-                        para = para.strip()
-                        if para:
-                            block_filled_nodes.append(
-                                PreNode(offset, para, NodeType.PARAGRAPH)
-                            )
-                        offset += len(para) + 2
-                block_filled_nodes.append(node)
-                current_pos = node.start_idx + len(node.content)
-
-            if current_pos < len(block):
-                unmatched_text = block[current_pos:]
-                paragraphs = re.split(r"\n\s*\n", unmatched_text)
-                offset = current_pos
-                for para in paragraphs:
-                    para = para.strip()
-                    if para:
-                        block_filled_nodes.append(
-                            PreNode(offset, para, NodeType.PARAGRAPH)
-                        )
-                    offset += len(para) + 2
-            for node in block_filled_nodes:
-                pre_nodes.append(node)
-            pre_nodes.append(PreNode(0, "", NodeType.LINE_BREAK))
-
+        for line in lines:
+            for node_type, pattern in self.patterns.items():
+                if re.match(pattern, line):
+                    pre_nodes.append(PreNode(content=line, node_type=node_type))
+                    break
         return pre_nodes
-
-    @process_prenode(NodeType.LINE_BREAK)
-    def _process_line_break(self, node: PreNode) -> ast.ASTNode:
-        return ast.LineBreak()
-
-    @process_prenode(NodeType.HEADING)
-    def _process_heading(self, node: PreNode) -> ast.ASTNode:
-        """
-        Converts a heading PreNode into an AST Heading node.
-
-        Args:
-            node (PreNode): A PreNode of type HEADING.
-
-        Returns:
-            ast.Heading: A heading node for the AST.
-        """
-        heading_level = len(re.findall(r"#+", node.content)[0])
-        node.content = node.content.lstrip("# ").rstrip("\n")
-
-        heading = ast.Heading(level=heading_level)
-        for child in self._parse_inline(node.content):
-            heading.add_child(child)
-        return heading
-
-    # TODO: Correct striping and level detection
-    @process_prenode(NodeType.LIST_ITEM)
-    def _process_list_item(self, node: PreNode) -> ast.ASTNode:
-        """
-        Converts a list item PreNode into an AST ListItem node.
-
-        Args:
-            node (PreNode): A PreNode of type LIST_ITEM.
-
-        Returns:
-            ast.ListItem: A list item node for the AST.
-        """
-        nesting_level = len(re.findall(r"(\s*)-", node.content)[0])
-        node.content = node.content.lstrip(" -")
-        list_item = ast.ListItem(order="unordered", nesting=nesting_level)
-        for child in self._parse_inline(node.content):
-            list_item.add_child(child)
-        return list_item
 
     def _build_inline_node(
         self, node_class: type[ast.ASTNode], content: str
     ) -> ast.ASTNode:
         """
-        Helper function to create an inline AST node and parse its children from content.
+        Helper function to build an inline node and parse its children.
 
         Args:
-            node_class (type[ast.ASTNode]):
-                Class of the AST node to create (Bold, Italic, Strike, etc.).
+            node_class (type[ASTNode]): Type of the node to create.
             content (str): Inner content to parse.
 
         Returns:
-            ast.ASTNode: The created and populated AST node.
+            ASTNode: Parsed inline node.
         """
-        parsed = self._parse_inline(content)
-
         node = node_class()
-        for child in parsed:
+        for child in self._parse_inline(content):
             node.add_child(child)
         return node
 
     def _parse_match(self, match: re.Match) -> ast.ASTNode:
         """
-        Parses a single regex match corresponding to inline formatting,
-        and constructs the appropriate AST node (bold, italic, code, strike).
+        Converts a regex match to the appropriate inline AST node.
 
         Args:
-            match (re.Match): A regex match containing inline markup.
+            match (re.Match): The regex match object.
 
         Returns:
-            ast.ASTNode: A parsed AST node representing the matched formatting.
+            ASTNode: Inline-formatted AST node.
 
         Raises:
-            ValueError: If the match does not correspond to any recognized formatting.
+            ValueError: If the match doesn't match known inline formats.
         """
         mapping = {
             "code": ast.InlineCode,
@@ -301,15 +259,14 @@ class MarkdownConverter(BaseConverter):
             if match.group(group_name):
                 if group_name == "code":
                     return node_class(code=match.group("code_content"))
-                content = match.group(f"{group_name}_content")
-                return self._build_inline_node(node_class, content)
+                return self._build_inline_node(
+                    node_class, match.group(f"{group_name}_content")
+                )
 
         if match.group("stars"):
             stars = match.group("stars")
             content = match.group("stars_content")
-            star_count = len(stars)
-
-            if star_count % 2 == 0:
+            if len(stars) % 2 == 0:
                 return self._build_inline_node(ast.Bold, content)
             else:
                 bold_node = ast.Bold()
@@ -319,16 +276,15 @@ class MarkdownConverter(BaseConverter):
 
         raise ValueError("Unrecognized inline match")
 
-    def _parse_inline(self, text: str) -> list[ast.ASTNode]:
+    def _parse_inline(self, text: str) -> List[ast.ASTNode]:
         """
-        Parses text, possibly containing multiple inline markup elements,
-        and returns a list of AST nodes representing the parsed inline elements.
+        Parses a string with potential inline formatting into a list of AST nodes.
 
         Args:
-            text (str): The full text containing potential inline formatting.
+            text (str): Input string.
 
         Returns:
-            list[ASTNode]: A list of AST nodes parsed from the text.
+            List[ASTNode]: List of inline-parsed AST nodes.
         """
         if not self.inline_pattern.search(text):
             return [ast.Text(text)]
@@ -340,44 +296,64 @@ class MarkdownConverter(BaseConverter):
             if not match:
                 children.append(ast.Text(text[pos:]))
                 break
-
             start, end = match.span()
-
             if start > pos:
                 children.append(ast.Text(text[pos:start]))
-
             children.append(self._parse_match(match))
-
             pos = end
 
         return children
 
+    @process_prenode(NodeType.LINE_BREAK)
+    def _process_line_break(self, node: PreNode) -> ast.ASTNode:
+        """Converts a line break PreNode to a LineBreak AST node."""
+        return ast.LineBreak()
+
+    @process_prenode(NodeType.HEADING)
+    def _process_heading(self, node: PreNode) -> ast.ASTNode:
+        """Parses heading syntax and returns a Heading AST node."""
+        heading_level = len(re.findall(r"#+", node.content)[0])
+        node.content = node.content.lstrip("# ").rstrip("\n")
+
+        heading = ast.Heading(level=heading_level)
+        for child in self._parse_inline(node.content):
+            heading.add_child(child)
+        return heading
+
+    @process_prenode(NodeType.UR_LIST_ITEM)
+    def _process_list_item(self, node: PreNode) -> ast.ASTNode:
+        """Parses unordered list item into ListItem AST node."""
+        nesting_level = len(re.findall(r"(\s*)[-*+]", node.content)[0])
+        node.content = node.content[nesting_level + 2 :]
+        list_item = ast.ListItem(order="unordered", nesting=nesting_level)
+        for child in self._parse_inline(node.content):
+            list_item.add_child(child)
+        return list_item
+
     @process_prenode(NodeType.PARAGRAPH)
     def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
         """
-        Parses parahgraph for inline formatting like bold, italic, strike, code,
+        Parses a paragraph and returns a Paragraph AST node.
 
         Args:
-            node (PreNode): A PreNode of type PARAGRAPH.
+            node (PreNode): A PreNode containing paragraph text.
 
         Returns:
-            Node (Paragraph): A Paragraphed with parsed inline text
+            Paragraph: A Paragraph AST node with parsed inline children.
         """
-
         paragraph_node = ast.Paragraph()
         for inline_child in self._parse_inline(node.content):
             paragraph_node.add_child(inline_child)
-
         return paragraph_node
 
-    def to_file(self, ast_root):
+    def to_file(self, ast_root: ast.ASTNode) -> str:
         """
-        Converts an AST back to a file (not implemented yet).
+        Converts the AST back to a file (not implemented).
 
         Args:
-            ast_root (ASTNode): The root of the AST.
+            ast_root (ASTNode): Root of the AST.
 
         Returns:
-            str: Placeholder string for now.
+            str: Placeholder string.
         """
         return "In progress"
