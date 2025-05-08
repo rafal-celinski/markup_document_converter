@@ -49,9 +49,9 @@ class MarkdownConverter(BaseConverter):
         super().__init__()
 
         self.patterns: dict[NodeType, str] = {
-            NodeType.HEADING: r"^(#+)\s.*\n",
-            NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n",
-            # NodeType.OR_LIST_ITEM: r"",
+            NodeType.HEADING: r"^(#+)\s.*\n$",
+            NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n$",
+            NodeType.OR_LIST_ITEM: r"^\s*\d+\.\s+.*\n$",
             NodeType.LINE_BREAK: r"^\s*$",
             # Keep TEXT at the end so that is it default in case no pattern matches
             NodeType.TEXT: r".*",
@@ -337,7 +337,13 @@ class MarkdownConverter(BaseConverter):
     @process_prenode(NodeType.OR_LIST_ITEM)
     def _process_or_list_item(self, node: PreNode) -> ast.ASTNode:
         """Parses ordered list item into ListItem AST node"""
-        pass
+        nesting_level = len(re.findall(r"(\s*)\d*\.\s", node.content)[0])
+        num_len = len(re.findall(r"\s*(\d*\.\s)", node.content)[0])
+        node.content = node.content[nesting_level + num_len :]
+        list_item = ast.ListItem(order="ordered", nesting=nesting_level)
+        for child in self._parse_inline(node.content):
+            list_item.add_child(child)
+        return list_item
 
     @process_prenode(NodeType.PARAGRAPH)
     def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
