@@ -51,6 +51,7 @@ class MarkdownConverter(BaseConverter):
         self.patterns: dict[NodeType, str] = {
             NodeType.HEADING: r"^(#+)\s.*\n",
             NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n",
+            # NodeType.OR_LIST_ITEM: r"",
             NodeType.LINE_BREAK: r"^\s*$",
             # Keep TEXT at the end so that is it default in case no pattern matches
             NodeType.TEXT: r".*",
@@ -93,7 +94,8 @@ class MarkdownConverter(BaseConverter):
             ast_node = handler(node)
             root.add_child(ast_node)
 
-        return self._group_lists(root)
+        root = self._group_lists(root)
+        return root
 
     def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
         """
@@ -167,7 +169,9 @@ class MarkdownConverter(BaseConverter):
                     new_list_root = ast.ListItem(order=node.order, nesting=node.nesting)
                     if curr_list:
                         curr_list.add_child(new_list_root)
-                    idx = merger(idx, node.nesting, new_list_root)
+                        idx = merger(idx, node.nesting, new_list_root)
+                    else:
+                        idx = merger(idx, node.nesting, list_root)
                 else:
                     if curr_list:
                         list_root.add_child(curr_list)
@@ -321,7 +325,7 @@ class MarkdownConverter(BaseConverter):
         return heading
 
     @process_prenode(NodeType.UR_LIST_ITEM)
-    def _process_list_item(self, node: PreNode) -> ast.ASTNode:
+    def _process_ur_list_item(self, node: PreNode) -> ast.ASTNode:
         """Parses unordered list item into ListItem AST node."""
         nesting_level = len(re.findall(r"(\s*)[-*+]", node.content)[0])
         node.content = node.content[nesting_level + 2 :]
@@ -329,6 +333,11 @@ class MarkdownConverter(BaseConverter):
         for child in self._parse_inline(node.content):
             list_item.add_child(child)
         return list_item
+
+    @process_prenode(NodeType.OR_LIST_ITEM)
+    def _process_or_list_item(self, node: PreNode) -> ast.ASTNode:
+        """Parses ordered list item into ListItem AST node"""
+        pass
 
     @process_prenode(NodeType.PARAGRAPH)
     def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
