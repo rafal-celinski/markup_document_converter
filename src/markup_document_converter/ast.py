@@ -511,7 +511,7 @@ class Link(ASTNode):
     Represents a hyperlink node.
     """
 
-    def __init__(self, source, text, children=None):
+    def __init__(self, source, children=None):
         """
         Initialize a Link node.
 
@@ -520,7 +520,7 @@ class Link(ASTNode):
             text (str): The link text.
             children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("link", children, attributes={"source": source, "text": text})
+        super().__init__("link", children, attributes={"source": source})
 
     @property
     def source(self):
@@ -538,23 +538,6 @@ class Link(ASTNode):
             value (str): The new link target.
         """
         self.set_attribute("source", value)
-
-    @property
-    def text(self):
-        """
-        str: The link text.
-        """
-        return self.attributes.get("text", "")
-
-    @text.setter
-    def text(self, value):
-        """
-        Set the link text.
-
-        Args:
-            value (str): The new link text.
-        """
-        self.set_attribute("text", value)
 
 
 class HorizontalRule(ASTNode):
