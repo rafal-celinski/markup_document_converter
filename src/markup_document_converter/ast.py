@@ -318,7 +318,7 @@ class ListItem(ASTNode):
     Represents an item within a list.
     """
 
-    def __init__(self, order=None, children=None):
+    def __init__(self, order, nesting, children=None, attributes: dict = None):
         """
         Initialize a ListItem node.
 
@@ -326,7 +326,11 @@ class ListItem(ASTNode):
             order (int, optional): The order of the item in the list.
             children (list, optional): Child nodes. Defaults to None. Represents list element body.
         """
-        super().__init__("list_item", children, attributes={"order": order})
+        super().__init__(
+            "list_item",
+            children,
+            attributes={"order": order, "nesting": nesting} | (attributes or {}),
+        )
 
     @property
     def order(self):
@@ -334,6 +338,13 @@ class ListItem(ASTNode):
         int: The order of the list item.
         """
         return self.attributes.get("order", "")
+
+    @property
+    def nesting(self):
+        """
+        int: Nesting level of the list item
+        """
+        return self.attributes.get("nesting", 0)
 
     @order.setter
     def order(self, value):
@@ -347,6 +358,51 @@ class ListItem(ASTNode):
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_list_item(self)
+
+    @nesting.setter
+    def nesting(self, value):
+        """
+        Set the nesting level of the list item
+
+        Args:
+            value (int): The new nesting level
+        """
+        self.set_attribute("nesting", value)
+
+
+class TaskListItem(ListItem):
+    """
+    Represents a task list item with a checked/unchecked state.
+    """
+
+    def __init__(self, nesting, checked=False, children=None):
+        """
+        Initialize a TaskListItem node.
+
+        Args:
+            checked (bool, optional): Whether the task is checked. Defaults to False.
+            children (list, optional): Child nodes. Defaults to None.
+        """
+        super().__init__(
+            "item_list", nesting, children, attributes={"checked": checked}
+        )
+
+    @property
+    def checked(self):
+        """
+        bool: Whether the task is checked.
+        """
+        return self.attributes.get("checked", False)
+
+    @checked.setter
+    def checked(self, value):
+        """
+        Set the checked state of the task.
+
+        Args:
+            value (bool): The new checked state.
+        """
+        self.set_attribute("checked", value)
 
 
 class CodeBlock(ASTNode):

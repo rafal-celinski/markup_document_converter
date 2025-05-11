@@ -29,6 +29,7 @@ Projekt ma na celu stworzenie aplikacji działającej z poziomu wiersza poleceń
 | 12.05.2025 | Testy konwersji Markdown → Latex                 |
 |            | Uzupełnianie zaległości                          |
 | 19.05.2025 | Projektowanie i implementacja CLI                |
+|            | Projektowanie i implementacja aplikacji webowej  |
 |            |                                                  |
 | 26.05.2025 | Przygotowanie paczki aplikacji                   |
 |            | Uzupełnienie dokumentacji                        |
