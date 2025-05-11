@@ -1,7 +1,9 @@
 from markup_document_converter.converters.base_converter import BaseConverter
+from markup_document_converter.registry import register_converter
 import markup_document_converter.ast as ast
 
 
+@register_converter("typst")
 class TypstConverter(BaseConverter):
     def _add_markup(self, left, right, node):
         chidren_result = "".join([child.convert(self) for child in node.children])

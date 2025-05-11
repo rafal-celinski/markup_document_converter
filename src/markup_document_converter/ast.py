@@ -463,7 +463,7 @@ class InlineCode(ASTNode):
     Represents an inline code span.
     """
 
-    def __init__(self, code, language):
+    def __init__(self, code):
         """
         Initialize an InlineCode node.
 
@@ -471,7 +471,7 @@ class InlineCode(ASTNode):
             code (str): The inline code content.
             language (str): The programming language of the code.
         """
-        super().__init__("inline_code", attributes={"code": code, "language": language})
+        super().__init__("inline_code", attributes={"code": code})
 
     @property
     def code(self):
@@ -704,41 +704,3 @@ class TableCell(ASTNode):
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_table_cell(self)
-
-
-class TaskListItem(ASTNode):
-    """
-    Represents a task list item with a checked/unchecked state.
-    """
-
-    def __init__(self, checked=False, children=None):
-        """
-        Initialize a TaskListItem node.
-
-        Args:
-            checked (bool, optional): Whether the task is checked. Defaults to False.
-            children (list, optional): List of children. Represents body of task list item
-        """
-        super().__init__(
-            "task_list_item", attributes={"checked": checked}, children=children
-        )
-
-    @property
-    def checked(self):
-        """
-        bool: Whether the task is checked.
-        """
-        return self.attributes.get("checked", False)
-
-    @checked.setter
-    def checked(self, value):
-        """
-        Set the checked state of the task.
-
-        Args:
-            value (bool): The new checked state.
-        """
-        self.set_attribute("checked", value)
-
-    def convert(self, converter: "BaseConverter") -> str:
-        return converter.convert_task_list_item(self)

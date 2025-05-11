@@ -1,4 +1,5 @@
-from src.markup_document_converter.converters.base_converter import BaseConverter
+from markup_document_converter.parsers.base_parser import BaseParser
+from markup_document_converter.registry import register_parser
 import src.markup_document_converter.ast as ast
 import re
 from dataclasses import dataclass
@@ -40,7 +41,9 @@ def process_prenode(node_type: NodeType) -> Callable:
     return decorator
 
 
-class MarkdownConverter(BaseConverter):
+@register_parser("md")
+@register_parser("markdown")
+class MarkdownParser(BaseParser):
     def __init__(self) -> None:
         """
         Initializes the MarkdownConverter. Compiles regex patterns and registers
