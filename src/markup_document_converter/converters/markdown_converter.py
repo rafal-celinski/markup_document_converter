@@ -71,7 +71,9 @@ class MarkdownConverter(BaseConverter):
             r"|(?P<stars>\*{3,})(?P<stars_content>.+?)(?P=stars)"
             r"|(?P<stars_bold>\*{2})(?P<stars_bold_content>.+?)(?P=stars_bold)"
             r"|(?P<stars_italic>\*)(?P<stars_italic_content>.+?)(?P=stars_italic)"
-            r"|(?P<tilde>~{2,})(?P<tilde_content>.+?)(?P=tilde)",
+            r"|(?P<tilde>~{2,})(?P<tilde_content>.+?)(?P=tilde)"
+            r"|!\[(?P<image_alt>[^\]]*)\]\((?P<image_url>[^)]+)\)"
+            r"|\[(?P<link_text>[^\]]+)\]\((?P<link_url>[^)]+)\)",
             re.DOTALL,
         )
 
@@ -321,6 +323,19 @@ class MarkdownConverter(BaseConverter):
                 italic_node = self._build_inline_node(ast.Italic, content)
                 bold_node.add_child(italic_node)
                 return bold_node
+
+        if match.group("link_text") and match.group("link_url"):
+            text = match.group("link_text")
+            url = match.group("link_url")
+            link_node = ast.Link(source=url)
+            for child in self._parse_inline(text):
+                link_node.add_child(child)
+            return link_node
+
+        if match.group("image_alt") and match.group("image_url"):
+            alt = match.group("image_alt")
+            src = match.group("image_url")
+            return ast.Image(source=src, alt_text=alt)
 
         raise ValueError("Unrecognized inline match")
 
