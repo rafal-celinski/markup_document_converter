@@ -235,14 +235,50 @@ class Blockquote(ASTNode):
     Represents a blockquote node.
     """
 
-    def __init__(self, children=None):
+    def __init__(self, children=None, nesting=0, blockqoute_indent=1):
         """
         Initialize a Blockquote node.
 
         Args:
             children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("blockquote", children)
+        super().__init__(
+            "blockquote",
+            children,
+            attributes={"nesting": nesting, "blockqoute_indent": blockqoute_indent},
+        )
+
+    @property
+    def nesting(self):
+        """
+        int: Nesting level value.
+        """
+        return self.attributes.get("nesting", 0)
+
+    @property
+    def blockqoute_indent(self):
+        """
+        int: Number of blockqoute signs
+        """
+        return self.attributes.get("blockqoute_indent", 1)
+
+    @nesting.setter
+    def nesting(self, value):
+        """
+        Set nesting level.
+        Args:
+            value (int): New nesting level value.
+        """
+        self.set_attribute("nesting", value)
+
+    @blockqoute_indent.setter
+    def blockqoute_indent(self, value):
+        """
+        Set blockqoute indent value.
+        Args:
+            value (int): New blockqoute indent value.
+        """
+        self.set_attribute("blockqoute_indent", value)
 
 
 class List(ASTNode):

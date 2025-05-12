@@ -14,6 +14,9 @@ class NodeType(Enum):
     PARAGRAPH = auto()
     LINE_BREAK = auto()
     TEXT = auto()
+    LINK = auto()
+    IMAGE = auto()
+    BLOCKQOUTE = auto()
 
 
 @dataclass(order=True)
@@ -55,6 +58,7 @@ class MarkdownConverter(BaseConverter):
             NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n$",
             NodeType.OR_LIST_ITEM: r"^\s*\d+\.\s+.*\n$",
             NodeType.LINE_BREAK: r"^\s*$",
+            NodeType.BLOCKQOUTE: r"^\s*>+.*\n$",
             # Keep TEXT at the end so that is it default in case no pattern matches
             NodeType.TEXT: r".*",
         }
@@ -90,6 +94,9 @@ class MarkdownConverter(BaseConverter):
 
         pre_nodes = self._generate_prenodes(lines)
         pre_nodes = self._group_pre_nodes(pre_nodes)
+
+        for node in pre_nodes:
+            print(node)
 
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
@@ -178,8 +185,11 @@ class MarkdownConverter(BaseConverter):
                     if curr_list:
                         list_root.add_child(curr_list)
                         curr_list = None
-                    list_root.add_child(node)
-                    idx += 1
+                    if nesting_lvl != 0:
+                        return idx
+                    else:
+                        list_root.add_child(node)
+                        idx += 1
             if curr_list:
                 list_root.add_child(curr_list)
             return idx
@@ -378,6 +388,22 @@ class MarkdownConverter(BaseConverter):
         for inline_child in self._parse_inline(node.content):
             paragraph_node.add_child(inline_child)
         return paragraph_node
+
+    @process_prenode(NodeType.BLOCKQOUTE)
+    def _process_blockqoute(self, node: PreNode) -> ast.ASTNode:
+        """
+        Parses a blockqoute and returns Blockqoute AST node.
+        """
+        nesting_level = len(node.content) - len(node.content.lstrip())
+        blockqoute_indent = len(re.findall(r">+", node.content)[0])
+        blockqoute_node = ast.Blockquote(
+            nesting=nesting_level, blockqoute_indent=blockqoute_indent
+        )
+        for inline_child in self._parse_inline(
+            node.content[blockqoute_indent + nesting_level :]
+        ):
+            blockqoute_node.add_child(inline_child)
+        return blockqoute_node
 
     def to_file(self, ast_root: ast.ASTNode) -> str:
         """
