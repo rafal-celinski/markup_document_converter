@@ -17,6 +17,8 @@ class NodeType(Enum):
     LINK = auto()
     IMAGE = auto()
     BLOCKQOUTE = auto()
+    CODE_BORDER = auto()
+    CODE_BLOCK = auto()
 
 
 @dataclass(order=True)
@@ -59,6 +61,7 @@ class MarkdownConverter(BaseConverter):
             NodeType.OR_LIST_ITEM: r"^\s*\d+\.\s+.*\n$",
             NodeType.LINE_BREAK: r"^\s*$",
             NodeType.BLOCKQOUTE: r"^\s*>+.*\n$",
+            NodeType.CODE_BORDER: r"^\s*```.*\n$",
             # Keep TEXT at the end so that is it default in case no pattern matches
             NodeType.TEXT: r".*",
         }
@@ -96,9 +99,6 @@ class MarkdownConverter(BaseConverter):
         pre_nodes = self._group_pre_nodes(pre_nodes)
 
         for node in pre_nodes:
-            print(node)
-
-        for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
             ast_node = handler(node)
             root.add_child(ast_node)
@@ -116,35 +116,67 @@ class MarkdownConverter(BaseConverter):
         Returns:
             List[PreNode]: Grouped PreNodes, ready for processing into AST nodes.
         """
-        single_types = [NodeType.HEADING, NodeType.LINE_BREAK]
-        grouped = []
-        idx = 0
-        grouping_node = None
 
-        while idx < len(pre_nodes):
-            node = pre_nodes[idx]
-            if node.node_type in single_types:
-                if grouping_node:
-                    grouped.append(grouping_node)
-                    grouping_node = None
-                grouped.append(node)
-            else:
-                if not grouping_node:
-                    grouping_node = node
-                else:
-                    if node.node_type == NodeType.TEXT:
-                        grouping_node.content += node.content
-                    else:
+        def group_lists(pre_nodes: list[PreNode]):
+            single_types = [NodeType.HEADING, NodeType.LINE_BREAK, NodeType.CODE_BLOCK]
+            grouped = []
+            grouping_node = None
+
+            for node in pre_nodes:
+                if node.node_type in single_types:
+                    if grouping_node:
                         grouped.append(grouping_node)
+                        grouping_node = None
+                    grouped.append(node)
+                else:
+                    if not grouping_node:
                         grouping_node = node
-                if grouping_node and grouping_node.node_type == NodeType.TEXT:
-                    grouping_node.node_type = NodeType.PARAGRAPH
-            idx += 1
+                    else:
+                        if node.node_type == NodeType.TEXT:
+                            grouping_node.content += node.content
+                        else:
+                            grouped.append(grouping_node)
+                            grouping_node = node
+                    if grouping_node and grouping_node.node_type == NodeType.TEXT:
+                        grouping_node.node_type = NodeType.PARAGRAPH
 
-        if grouping_node:
-            grouped.append(grouping_node)
+            if grouping_node:
+                grouped.append(grouping_node)
 
-        return grouped
+            return grouped
+
+        def group_code_blocks(pre_nodes: list[PreNode]):
+            grouped = []
+            grouping_node = None
+
+            for node in pre_nodes:
+                node_is_border = node.node_type == NodeType.CODE_BORDER
+                if node_is_border and not grouping_node:
+                    grouping_node = PreNode(
+                        content=node.content, node_type=NodeType.CODE_BLOCK
+                    )
+                elif node_is_border and grouping_node:
+                    if node.content.lstrip().rstrip() == "```":
+                        grouped.append(grouping_node)
+                        grouping_node = None
+                    else:
+                        grouping_node.content += node.content
+                elif not node_is_border and not grouping_node:
+                    grouped.append(node)
+                else:
+                    grouping_node.content += node.content
+            if grouping_node:
+                grouped.append(grouping_node)
+
+            return grouped
+
+        post_code_blocks = group_code_blocks(pre_nodes)
+        post_lists = group_lists(post_code_blocks)
+
+        return post_lists
+
+        def group_tables(pre_nodes):
+            pass
 
     def _group_lists(self, original_root: ast.ASTNode) -> ast.ASTNode:
         """
@@ -404,6 +436,17 @@ class MarkdownConverter(BaseConverter):
         ):
             blockqoute_node.add_child(inline_child)
         return blockqoute_node
+
+    @process_prenode(NodeType.CODE_BLOCK)
+    def _process_code_block(self, node: PreNode) -> ast.ASTNode:
+        """
+        Parses a code block and returns CodeBlock AST node.
+        """
+        language = re.findall(r"```(.*)\n", node.content)[0]
+        first_line_len = len(re.findall(r".*\n", node.content)[0])
+        code = node.content[first_line_len:]
+        code_block_node = ast.CodeBlock(code=code, language=language)
+        return code_block_node
 
     def to_file(self, ast_root: ast.ASTNode) -> str:
         """
