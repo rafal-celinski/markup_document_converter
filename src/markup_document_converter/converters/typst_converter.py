@@ -8,7 +8,7 @@ class TypstConverter(BaseConverter):
         return f"{left}{chidren_result}{right}"
 
     def convert_default(self, node: ast.ASTNode) -> str:
-        pass
+        return ""
 
     def convert_document(self, document: ast.Document) -> str:
         return self._add_markup("", "\n", document)
@@ -26,7 +26,40 @@ class TypstConverter(BaseConverter):
         return self._add_markup("#strike[", "]", strike)
 
     def convert_text(self, text: ast.Text) -> str:
-        return text.text
+        result = text.text
+
+        typst_special_chars = [
+            "\\",
+            "*",
+            "#",
+            "[",
+            "]",
+            "+",
+            "-",
+            "/",
+            "$",
+            "=",
+            "<",
+            ">",
+            "@",
+            "'",
+            '"',
+            "`",
+        ]
+
+        unusual_escapes = {
+            "_ ": "\\_ ",
+            " _": " \\_",
+        }
+
+        # escape special chars
+        for char in typst_special_chars:
+            result = result.replace(char, f"\\{char}")
+
+        for char, escape_char in unusual_escapes.items():
+            result = result.replace(char, escape_char)
+
+        return result
 
     def convert_paragraph(self, paragraph: ast.Paragraph) -> str:
         return self._add_markup("\n", "\n", paragraph)
@@ -112,9 +145,11 @@ class TypstConverter(BaseConverter):
 
         for row in table.children:
             result += "\t"
-            for cell in row.children:
-                result += f"[{cell.convert(self)}], "
-            result += "[], " * (columns - len(row.children))
+            result += row.convert(self)
+
+            if not row.is_header:
+                result += "[], " * (columns - len(row.children))
+
             result += "\n"
 
         result += ")\n"
@@ -122,7 +157,13 @@ class TypstConverter(BaseConverter):
         return result
 
     def convert_table_row(self, table_row: ast.TableRow) -> str:
-        pass
+        result = ""
+        for cell in table_row.children:
+            result += f"[{cell.convert(self)}], "
+
+        if table_row.is_header:
+            result = f"table.header({result}),"
+        return result
 
     def convert_table_cell(self, table_cell: ast.TableCell) -> str:
         cell_text = "".join([child.convert(self) for child in table_cell.children])

@@ -113,6 +113,20 @@ class TestTypstConverter:
 
         assert result == "Text"
 
+    def test_convert_text_with_special_chars(self):
+        text = ast.Text("*#[]+-/$=\\<>@'\"`")
+
+        result = text.convert(self.typst_converter)
+
+        assert result == "\\*\\#\\[\\]\\+\\-\\/\\$\\=\\\\\\<\\>\\@\\'\\\"\\`"
+
+    def test_convert_text_with_unusual_special_chars(self):
+        text = ast.Text("_ | _| _ |_")
+
+        result = text.convert(self.typst_converter)
+
+        assert result == "\\_ | \\_| \\_ |_"
+
     def test_convert_paragraph(self):
         paragraph = ast.Paragraph(children=[ast.Text("Paragraph")])
 
@@ -348,6 +362,29 @@ class TestTypstConverter:
 
         assert result == '#link("example.com")[Link text]'
 
+    def test_convert_link_with_formated_text(self):
+        link = ast.Link(
+            source="example.com",
+            children=[
+                ast.Bold(
+                    children=[
+                        ast.Text("Bold"),
+                    ]
+                ),
+                ast.Text(", "),
+                ast.Italic(
+                    children=[
+                        ast.Text("Italic"),
+                    ]
+                ),
+                ast.Text(" link text"),
+            ],
+        )
+
+        result = link.convert(self.typst_converter)
+
+        assert result == '#link("example.com")[*Bold*, _Italic_ link text]'
+
     def test_convert_link_without_text(self):
         link = ast.Link(source="example.com")
 
@@ -362,7 +399,7 @@ class TestTypstConverter:
 
         assert result == "#line(length: 100%)"
 
-    def test_convert_table(self):
+    def test_convert_table_with_header(self):
         table = ast.Table(
             children=[
                 ast.TableRow(
@@ -379,6 +416,7 @@ class TestTypstConverter:
                         ast.TableCell(children=[ast.Text("cell_10")]),
                         ast.TableCell(children=[ast.Text("cell_11")]),
                         ast.TableCell(children=[ast.Text("cell_12")]),
+                        ast.TableCell(children=[ast.Text("cell_13")]),
                     ],
                 ),
                 ast.TableRow(
@@ -396,10 +434,52 @@ class TestTypstConverter:
         assert (
             result
             == "\n#table(\n"
-            + "\tcolumns: 3,\n"
-            + "\t[cell_00], [cell_01], [cell_02], \n"
-            + "\t[cell_10], [cell_11], [cell_12], \n"
-            + "\t[cell_20], [cell_21], [], \n"
+            + "\tcolumns: 4,\n"
+            + "\ttable.header([cell_00], [cell_01], [cell_02], ),\n"
+            + "\t[cell_10], [cell_11], [cell_12], [cell_13], \n"
+            + "\t[cell_20], [cell_21], [], [], \n"
+            + ")\n"
+        )
+
+    def test_convert_table_without_header(self):
+        table = ast.Table(
+            children=[
+                ast.TableRow(
+                    is_header=False,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_00")]),
+                        ast.TableCell(children=[ast.Text("cell_01")]),
+                        ast.TableCell(children=[ast.Text("cell_02")]),
+                    ],
+                ),
+                ast.TableRow(
+                    is_header=False,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_10")]),
+                        ast.TableCell(children=[ast.Text("cell_11")]),
+                        ast.TableCell(children=[ast.Text("cell_12")]),
+                        ast.TableCell(children=[ast.Text("cell_13")]),
+                    ],
+                ),
+                ast.TableRow(
+                    is_header=False,
+                    children=[
+                        ast.TableCell(children=[ast.Text("cell_20")]),
+                        ast.TableCell(children=[ast.Text("cell_21")]),
+                    ],
+                ),
+            ]
+        )
+
+        result = table.convert(self.typst_converter)
+
+        assert (
+            result
+            == "\n#table(\n"
+            + "\tcolumns: 4,\n"
+            + "\t[cell_00], [cell_01], [cell_02], [], \n"
+            + "\t[cell_10], [cell_11], [cell_12], [cell_13], \n"
+            + "\t[cell_20], [cell_21], [], [], \n"
             + ")\n"
         )
 
@@ -414,7 +494,7 @@ class TestTypstConverter:
         table = ast.Table(
             children=[
                 ast.TableRow(
-                    is_header=True,
+                    is_header=False,
                     children=[
                         ast.TableCell(children=[ast.Text("cell_00")]),
                         ast.TableCell(children=[ast.Text("cell_01")]),
@@ -443,6 +523,32 @@ class TestTypstConverter:
             + "\t[cell_20], [cell_21], [], \n"
             + ")\n"
         )
+
+    def test_convert_table_row(self):
+        row = ast.TableRow(
+            is_header=False,
+            children=[
+                ast.TableCell(children=[ast.Text("cell_0")]),
+                ast.TableCell(children=[ast.Text("cell_1")]),
+            ],
+        )
+
+        result = row.convert(self.typst_converter)
+
+        assert result == "[cell_0], [cell_1], "
+
+    def test_convert_table_row_header(self):
+        row = ast.TableRow(
+            is_header=True,
+            children=[
+                ast.TableCell(children=[ast.Text("cell_0")]),
+                ast.TableCell(children=[ast.Text("cell_1")]),
+            ],
+        )
+
+        result = row.convert(self.typst_converter)
+
+        assert result == "table.header([cell_0], [cell_1], ),"
 
     def test_convert_table_cell(self):
         cell = ast.TableCell(children=[ast.Text("Cell text")])
