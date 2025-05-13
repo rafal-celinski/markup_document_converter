@@ -251,22 +251,31 @@ class TestCodeBlock:
 
 class TestInlineCode:
     def test_init(self):
-        code = InlineCode("var x = 10")
+        code = InlineCode("var x = 10", "javascript")
         assert code.node_type == "inline_code"
         assert code.code == "var x = 10"
         assert code.attributes["code"] == "var x = 10"
+        assert code.language == "javascript"
+        assert code.attributes["language"] == "javascript"
 
     def test_code_property(self):
-        code = InlineCode("var x = 10")
+        code = InlineCode("var x = 10", "javascript")
         assert code.code == "var x = 10"
         code.code = "let y = 20"
         assert code.code == "let y = 20"
         assert code.attributes["code"] == "let y = 20"
 
+    def test_language_property(self):
+        code = InlineCode("print('hello')", "python")
+        assert code.language == "python"
+        code.language = "javascript"
+        assert code.language == "javascript"
+        assert code.attributes["language"] == "javascript"
+
     def test_empty_code(self):
-        code = InlineCode("")
+        code = InlineCode("", "")
         assert code.code == ""
-        assert code.attributes["code"] == ""
+        assert code.language == ""
 
 
 class TestImage:
@@ -300,31 +309,26 @@ class TestImage:
 
 class TestLink:
     def test_init(self):
-        link = Link("https://example.com", "Example")
+        link = Link("https://example.com")
         assert link.node_type == "link"
         assert link.source == "https://example.com"
-        assert link.text == "Example"
         assert link.attributes["source"] == "https://example.com"
-        assert link.attributes["text"] == "Example"
 
     def test_source_property(self):
-        link = Link("https://example.com", "Example")
+        link = Link("https://example.com")
         assert link.source == "https://example.com"
         link.source = "https://new-example.com"
         assert link.source == "https://new-example.com"
         assert link.attributes["source"] == "https://new-example.com"
 
-    def test_text_property(self):
-        link = Link("https://example.com", "Example")
-        assert link.text == "Example"
-        link.text = "New Example"
-        assert link.text == "New Example"
-        assert link.attributes["text"] == "New Example"
-
     def test_empty_values(self):
         link = Link("", "")
         assert link.source == ""
-        assert link.text == ""
+
+    def test_init_with_children(self):
+        child = Text("Quoted text")
+        link = Link("https://example.com", children=[child])
+        assert link.children == [child]
 
 
 class TestHorizontalRule:
