@@ -38,33 +38,61 @@ class TypstConverter(BaseConverter):
         return self._add_markup("#quote[", "]", blockquote)
 
     def convert_list(self, list_node: ast.List) -> str:
+        def add_indent(text: str, indent: str):
+            has_trailing_newline = text.endswith("\n")
+            if has_trailing_newline:
+                text = text[:-1]
 
+            text = text.replace("\n", f"\n{indent}")
+
+            if has_trailing_newline:
+                text = text + "\n"
+            return text
+
+        indent = "\t"
         result = "\n"
 
         for child in list_node.children:
             if list_node.list_type == "unordered":
-                marker = "-"  # unordered
-            elif child.order is None:
-                marker = "+"  # auto ordered
+                marker = "-"
+            elif child.order is not None:
+                marker = f"{child.order}."
             else:
-                marker = f"{child.order}."  # ordered
+                marker = "+"
 
-            result += f"{marker} " + child.convert(self) + "\n"
+            child_content = child.convert(self)
+
+            child_content = add_indent(child_content, indent)
+
+            result += f"{marker} {child_content}"
 
         return result
 
-    def convert_list_item(self, list_item: ast.ListItem) -> str:
-        chidren_result = "".join([child.convert(self) for child in list_item.children])
-        return chidren_result
+    def convert_list_item(self, list_item: ast.ListItem, indent_level=0) -> str:
+        children_result = "".join([child.convert(self) for child in list_item.children])
+
+        if not children_result.endswith("\n"):
+            children_result += "\n"
+
+        return children_result
 
     def convert_code_block(self, code_block: ast.CodeBlock) -> str:
-        return f"```{code_block.language}\n" + f"{code_block.code}\n```"
+        return (
+            f"```{code_block.language if code_block.language else ''}\n"
+            + f"{code_block.code}\n```"
+        )
 
     def convert_inline_code(self, inline_code: ast.InlineCode) -> str:
-        return f"```{inline_code.language} {inline_code.code}```"
+        return f"```{inline_code.language+' ' if inline_code.language else ''}{inline_code.code}```"
 
     def convert_image(self, image: ast.Image) -> str:
-        return f'#image("{image.source}", alt: "{image.alt_text}")'
+        result = f'#image("{image.source}"'
+
+        if image.alt_text:
+            result += f', alt: "{image.alt_text}"'
+        result += ")"
+
+        return result
 
     def convert_link(self, link: ast.Link) -> str:
         link_text = "".join([child.convert(self) for child in link.children])

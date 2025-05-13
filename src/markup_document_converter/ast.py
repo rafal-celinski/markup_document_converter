@@ -354,7 +354,7 @@ class CodeBlock(ASTNode):
     Represents a code block with optional language specification.
     """
 
-    def __init__(self, code, language):
+    def __init__(self, code, language=None):
         """
         Initialize a CodeBlock node.
 
@@ -407,7 +407,7 @@ class InlineCode(ASTNode):
     Represents an inline code span.
     """
 
-    def __init__(self, code, language):
+    def __init__(self, code, language=None):
         """
         Initialize an InlineCode node.
 
@@ -460,7 +460,7 @@ class Image(ASTNode):
     Represents an image node with source and alt text.
     """
 
-    def __init__(self, source, alt_text):
+    def __init__(self, source, alt_text=None):
         """
         Initialize an Image node.
 
@@ -492,7 +492,7 @@ class Image(ASTNode):
         """
         str: The alternative text for the image.
         """
-        return self.attributes.get("alt_text", "")
+        return self.attributes.get("alt_text", None)
 
     @alt_text.setter
     def alt_text(self, value):
