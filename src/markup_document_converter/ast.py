@@ -318,7 +318,7 @@ class ListItem(ASTNode):
     Represents an item within a list.
     """
 
-    def __init__(self, order, nesting=None, children=None, attributes: dict = None):
+    def __init__(self, order=None, children=None, attributes: dict = None):
         """
         Initialize a ListItem node.
 
@@ -329,7 +329,7 @@ class ListItem(ASTNode):
         super().__init__(
             "list_item",
             children,
-            attributes={"order": order, "nesting": nesting} | (attributes or {}),
+            attributes={"order": order} | (attributes or {}),
         )
 
     @property
@@ -375,7 +375,7 @@ class TaskListItem(ListItem):
     Represents a task list item with a checked/unchecked state.
     """
 
-    def __init__(self, nesting, checked=False, children=None):
+    def __init__(self, checked=False, children=None):
         """
         Initialize a TaskListItem node.
 
@@ -383,9 +383,7 @@ class TaskListItem(ListItem):
             checked (bool, optional): Whether the task is checked. Defaults to False.
             children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "item_list", nesting, children, attributes={"checked": checked}
-        )
+        super().__init__("item_list", children, attributes={"checked": checked})
 
     @property
     def checked(self):
