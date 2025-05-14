@@ -1,7 +1,7 @@
 from src.markup_document_converter.parsers.base_parser import BaseParser
 import src.markup_document_converter.ast as ast
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, List
 
@@ -23,12 +23,15 @@ class NodeType(Enum):
     TABLE_BORDER = auto()
     TABLE = auto()
     HORIZONTAL_RULE = auto()
+    LIST = auto()
+    BLOCKQOUTE_GROUP = auto()
 
 
 @dataclass(order=True)
 class PreNode:
-    content: str
     node_type: NodeType
+    content: str = field(default_factory=str)
+    pre_children: list = field(default_factory=list)
 
 
 def process_prenode(node_type: NodeType) -> Callable:
@@ -68,7 +71,7 @@ class MarkdownParser(BaseParser):
             NodeType.BLOCKQOUTE: r"^\s*>+.*\n$",
             NodeType.CODE_BORDER: r"^\s*```.*\n$",
             NodeType.TABLE_BORDER: r"^\|?(\s*:?\s*-+:?\s*\|)*\s*:?\s*-+:?\s*\|?\s*\n$",
-            NodeType.TABLE_ROW: r"^\|?(.*\|)*.*\|?\n$",
+            NodeType.TABLE_ROW: r"^\|?(.*\|)+.*\|?\n$",
             # Keep TEXT at the end so that is it default in case no pattern matches
             NodeType.TEXT: r".*",
         }
@@ -107,6 +110,9 @@ class MarkdownParser(BaseParser):
         pre_nodes = self._generate_prenodes(lines)
         pre_nodes = self._group_pre_nodes(pre_nodes)
 
+        for nd in pre_nodes:
+            print(nd)
+
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
             ast_node = handler(node)
@@ -126,28 +132,95 @@ class MarkdownParser(BaseParser):
             List[PreNode]: Grouped PreNodes, ready for processing into AST nodes.
         """
 
-        def group_lists(pre_nodes: list[PreNode]):
-            single_types = [NodeType.HEADING, NodeType.LINE_BREAK, NodeType.CODE_BLOCK]
+        def group_blockqoutes(pre_nodes: list[PreNode]):
+            def merger(
+                idx: int,
+                p_nodes: list[PreNode],
+                curr_indent: int,
+                root_blockqoute: PreNode,
+            ):
+                while idx < len(p_nodes):
+                    p_node = p_nodes[idx]
+                    if p_node.node_type == NodeType.TEXT:
+                        root_blockqoute.pre_children.append(p_node)
+                        idx += 1
+                    elif p_node.node_type == NodeType.BLOCKQOUTE:
+                        blockqoute_indent = len(re.findall(r">+", p_node.content)[0])
+                        if blockqoute_indent == curr_indent:
+                            p_node.node_type = NodeType.TEXT
+                            root_blockqoute.pre_children.append(p_node)
+                            idx += 1
+                        elif blockqoute_indent > curr_indent:
+                            new_blockqoute = PreNode(node_type=NodeType.BLOCKQOUTE)
+                            root_blockqoute.pre_children.append(new_blockqoute)
+                            idx = merger(idx, p_nodes, curr_indent + 1, new_blockqoute)
+                        else:
+                            return idx
+                return idx
+
             grouped = []
             grouping_node = None
 
-            for node in pre_nodes:
-                if node.node_type in single_types:
-                    if grouping_node:
-                        grouped.append(grouping_node)
-                        grouping_node = None
-                    grouped.append(node)
+            for p_node in pre_nodes:
+                is_blockqoute = p_node.node_type == NodeType.BLOCKQOUTE
+                is_text = p_node.node_type == NodeType.TEXT
+                if is_blockqoute and not grouping_node:
+                    grouping_node = PreNode(
+                        node_type=NodeType.BLOCKQOUTE_GROUP, pre_children=[p_node]
+                    )
+                elif (is_blockqoute or is_text) and grouping_node:
+                    grouping_node.pre_children.append(p_node)
+                elif not (is_blockqoute or is_text) and grouping_node:
+                    grouped.append(grouping_node)
+                    grouping_node = None
+                    grouped.append(p_node)
                 else:
-                    if not grouping_node:
-                        grouping_node = node
+                    grouped.append(p_node)
+
+            if grouping_node:
+                grouped.append(grouping_node)
+
+            new_grouped = []
+
+            for p_node in grouped:
+                if p_node.node_type == NodeType.BLOCKQOUTE_GROUP:
+                    children = p_node.pre_children
+                    p_node = PreNode(node_type=NodeType.BLOCKQOUTE)
+                    merger(0, children, 1, p_node)
+                new_grouped.append(p_node)
+
+            return new_grouped
+
+        def group_lists(pre_nodes: list[PreNode]):
+            stop_types = [
+                NodeType.HEADING,
+                NodeType.LINE_BREAK,
+                NodeType.CODE_BLOCK,
+                NodeType.HORIZONTAL_RULE,
+                NodeType.TABLE,
+                NodeType.BLOCKQOUTE,
+            ]
+            grouped = []
+            grouping_node = None
+
+            for p_node in pre_nodes:
+                if p_node.node_type == NodeType.TEXT:
+                    if grouping_node:
+                        grouping_node.pre_children.append(p_node)
                     else:
-                        if node.node_type == NodeType.TEXT:
-                            grouping_node.content += node.content
-                        else:
-                            grouped.append(grouping_node)
-                            grouping_node = node
-                    if grouping_node and grouping_node.node_type == NodeType.TEXT:
-                        grouping_node.node_type = NodeType.PARAGRAPH
+                        grouped.append(p_node)
+                elif p_node.node_type not in stop_types and not grouping_node:
+                    grouping_node = PreNode(
+                        node_type=NodeType.LIST, pre_children=[p_node]
+                    )
+                elif p_node.node_type not in stop_types and grouping_node:
+                    grouping_node.pre_children.append(p_node)
+                elif p_node.node_type in stop_types and grouping_node:
+                    grouped.append(grouping_node)
+                    grouping_node = None
+                    grouped.append(p_node)
+                else:
+                    grouped.append(p_node)
 
             if grouping_node:
                 grouped.append(grouping_node)
@@ -207,10 +280,13 @@ class MarkdownParser(BaseParser):
                 elif not grouping_node:
                     grouped.append(p_node)
                 idx += 1
+            if grouping_node:
+                grouped.append(grouping_node)
             return grouped
 
         post_change_incorrect_table_rows = group_table_rows(pre_nodes)
-        post_code_blocks = group_code_blocks(post_change_incorrect_table_rows)
+        post_blockqoutes = group_blockqoutes(post_change_incorrect_table_rows)
+        post_code_blocks = group_code_blocks(post_blockqoutes)
         post_lists = group_lists(post_code_blocks)
 
         return post_lists
@@ -476,15 +552,13 @@ class MarkdownParser(BaseParser):
         """
         Parses a blockqoute and returns Blockqoute AST node.
         """
-        nesting_level = len(node.content) - len(node.content.lstrip())
-        blockqoute_indent = len(re.findall(r">+", node.content)[0])
-        blockqoute_node = ast.Blockquote(
-            nesting=nesting_level, blockqoute_indent=blockqoute_indent
-        )
-        for inline_child in self._parse_inline(
-            node.content[blockqoute_indent + nesting_level :]
-        ):
-            blockqoute_node.add_child(inline_child)
+        blockqoute_node = ast.Blockquote()
+        for child in node.pre_children:
+            if child.node_type == NodeType.BLOCKQOUTE:
+                blockqoute_node.add_child(self._process_blockqoute(child))
+            else:
+                for inline_child in self._parse_inline(child.content):
+                    blockqoute_node.add_child(inline_child)
         return blockqoute_node
 
     @process_prenode(NodeType.CODE_BLOCK)
