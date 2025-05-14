@@ -412,12 +412,12 @@ class TestTaskListItem:
         assert item.children == []
 
     def test_init_with_checked(self):
-        item = TaskListItem(True)
+        item = TaskListItem(checked=True)
         assert item.checked is True
         assert item.attributes["checked"] is True
 
     def test_checked_property(self):
-        item = TaskListItem(False)
+        item = TaskListItem(checked=False)
         assert item.checked is False
         item.checked = True
         assert item.checked is True
@@ -425,5 +425,10 @@ class TestTaskListItem:
 
     def test_init_with_children(self):
         text = Text("Task description")
-        item = TaskListItem(False, [text])
+        item = TaskListItem(checked=False, children=[text])
         assert item.children == [text]
+
+    def test_init_with_order(self):
+        item = TaskListItem(order=1)
+        assert item.order == 1
+        assert item.attributes["order"] == 1
