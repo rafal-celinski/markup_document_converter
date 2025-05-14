@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from markup_document_converter.converters.base_converter import BaseConverter
+
+
 class ASTNode:
     """
     Base class for all nodes in the Abstract Syntax Tree (AST).
@@ -73,6 +79,9 @@ class ASTNode:
         """
         return self._node_type
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_default(self)
+
 
 class Document(ASTNode):
     """
@@ -88,6 +97,9 @@ class Document(ASTNode):
         """
         super().__init__("document", children)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_document(self)
+
 
 class Heading(ASTNode):
     """
@@ -100,7 +112,7 @@ class Heading(ASTNode):
 
         Args:
             level (int): Heading level (e.g., 1 for H1).
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Reprezents headning text
         """
         super().__init__("heading", children, attributes={"level": level})
 
@@ -121,6 +133,9 @@ class Heading(ASTNode):
         """
         self.set_attribute("level", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_heading(self)
+
 
 class Bold(ASTNode):
     """
@@ -132,9 +147,12 @@ class Bold(ASTNode):
         Initialize a Bold node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Reprezents bold text
         """
         super().__init__("bold", children)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_bold(self)
 
 
 class Italic(ASTNode):
@@ -147,9 +165,12 @@ class Italic(ASTNode):
         Initialize an Italic node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents italic text
         """
         super().__init__("italic", children)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_italic(self)
 
 
 class Strike(ASTNode):
@@ -162,9 +183,12 @@ class Strike(ASTNode):
         Initialize a Strike node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents strike text.
         """
         super().__init__("strike", children)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_strike(self)
 
 
 class Text(ASTNode):
@@ -172,15 +196,14 @@ class Text(ASTNode):
     Represents a text node containing a string.
     """
 
-    def __init__(self, text, children=None):
+    def __init__(self, text):
         """
         Initialize a Text node.
 
         Args:
             text (str): The text content.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("text", children, attributes={"text": text})
+        super().__init__("text", attributes={"text": text})
 
     @property
     def text(self):
@@ -199,6 +222,9 @@ class Text(ASTNode):
         """
         self.set_attribute("text", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_text(self)
+
 
 class Paragraph(ASTNode):
     """
@@ -210,9 +236,12 @@ class Paragraph(ASTNode):
         Initialize a Paragraph node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents paragraph body
         """
         super().__init__("paragraph", children)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_paragraph(self)
 
 
 class LineBreak(ASTNode):
@@ -220,14 +249,14 @@ class LineBreak(ASTNode):
     Represents a line break in the document.
     """
 
-    def __init__(self, children=None):
+    def __init__(self):
         """
         Initialize a LineBreak node.
-
-        Args:
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("line_break", children)
+        super().__init__("line_break")
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_line_break(self)
 
 
 class Blockquote(ASTNode):
@@ -240,7 +269,7 @@ class Blockquote(ASTNode):
         Initialize a Blockquote node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents Blockquote body
         """
         super().__init__(
             "blockquote",
@@ -280,6 +309,9 @@ class Blockquote(ASTNode):
         """
         self.set_attribute("blockqoute_indent", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_blockquote(self)
+
 
 class List(ASTNode):
     """
@@ -292,7 +324,7 @@ class List(ASTNode):
 
         Args:
             list_type (str): The type of the list ("ordered" or "unordered").
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents list items.
         """
         super().__init__("list", children, attributes={"list_type": list_type})
 
@@ -313,6 +345,9 @@ class List(ASTNode):
         """
         self.set_attribute("list_type", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_list(self)
+
 
 class ListItem(ASTNode):
     """
@@ -324,8 +359,8 @@ class ListItem(ASTNode):
         Initialize a ListItem node.
 
         Args:
-            order (int): The order of the item in the list.
-            children (list, optional): Child nodes. Defaults to None.
+            order (int, optional): The order of the item in the list.
+            children (list, optional): Child nodes. Defaults to None. Represents list element body.
         """
         super().__init__(
             "list_item",
@@ -367,6 +402,9 @@ class ListItem(ASTNode):
         """
         self.set_attribute("nesting", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_list_item(self)
+
 
 class TaskListItem(ListItem):
     """
@@ -402,24 +440,24 @@ class TaskListItem(ListItem):
         """
         self.set_attribute("checked", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_task_list_item(self)
+
 
 class CodeBlock(ASTNode):
     """
     Represents a code block with optional language specification.
     """
 
-    def __init__(self, code, language, children=None):
+    def __init__(self, code, language=None):
         """
         Initialize a CodeBlock node.
 
         Args:
             code (str): The code content.
             language (str): The programming language of the code.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "code_block", children, attributes={"code": code, "language": language}
-        )
+        super().__init__("code_block", attributes={"code": code, "language": language})
 
     @property
     def code(self):
@@ -455,21 +493,24 @@ class CodeBlock(ASTNode):
         """
         self.set_attribute("language", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_code_block(self)
+
 
 class InlineCode(ASTNode):
     """
     Represents an inline code span.
     """
 
-    def __init__(self, code, children=None):
+    def __init__(self, code, language=None):
         """
         Initialize an InlineCode node.
 
         Args:
             code (str): The inline code content.
-            children (list, optional): Child nodes. Defaults to None.
+            language (str): The programming language of the code.
         """
-        super().__init__("inline_code", children, attributes={"code": code})
+        super().__init__("inline_code", attributes={"code": code, "language": language})
 
     @property
     def code(self):
@@ -488,24 +529,41 @@ class InlineCode(ASTNode):
         """
         self.set_attribute("code", value)
 
+    @property
+    def language(self):
+        """
+        str: The programming language of the code block.
+        """
+        return self.attributes.get("language", "")
+
+    @language.setter
+    def language(self, value):
+        """
+        Set the programming language.
+
+        Args:
+            value (str): The new language.
+        """
+        self.set_attribute("language", value)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_inline_code(self)
+
 
 class Image(ASTNode):
     """
     Represents an image node with source and alt text.
     """
 
-    def __init__(self, source, alt_text, children=None):
+    def __init__(self, source, alt_text=None):
         """
         Initialize an Image node.
 
         Args:
             source (str): The image source URL or path.
             alt_text (str): The alternative text for the image.
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "image", children, attributes={"source": source, "alt_text": alt_text}
-        )
+        super().__init__("image", attributes={"source": source, "alt_text": alt_text})
 
     @property
     def source(self):
@@ -529,7 +587,7 @@ class Image(ASTNode):
         """
         str: The alternative text for the image.
         """
-        return self.attributes.get("alt_text", "")
+        return self.attributes.get("alt_text", None)
 
     @alt_text.setter
     def alt_text(self, value):
@@ -540,6 +598,9 @@ class Image(ASTNode):
             value (str): The new alternative text.
         """
         self.set_attribute("alt_text", value)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_image(self)
 
 
 class Link(ASTNode):
@@ -553,8 +614,7 @@ class Link(ASTNode):
 
         Args:
             source (str): The URL or link target.
-            text (str): The link text.
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents link text.
         """
         super().__init__("link", children, attributes={"source": source})
 
@@ -575,20 +635,23 @@ class Link(ASTNode):
         """
         self.set_attribute("source", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_link(self)
+
 
 class HorizontalRule(ASTNode):
     """
     Represents a horizontal rule (thematic break) in the document.
     """
 
-    def __init__(self, children=None):
+    def __init__(self):
         """
         Initialize a HorizontalRule node.
-
-        Args:
-            children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__("horizontal_rule", children)
+        super().__init__("horizontal_rule")
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_horizontal_rule(self)
 
 
 class Table(ASTNode):
@@ -601,9 +664,12 @@ class Table(ASTNode):
         Initialize a Table node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents table rows.
         """
         super().__init__("table", children)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_table(self)
 
 
 class TableRow(ASTNode):
@@ -617,7 +683,7 @@ class TableRow(ASTNode):
 
         Args:
             is_header (bool, optional): Whether the row is a header. Defaults to False.
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents table cells.
         """
         super().__init__("table_row", children, attributes={"is_header": is_header})
 
@@ -638,6 +704,9 @@ class TableRow(ASTNode):
         """
         self.set_attribute("is_header", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_table_row(self)
+
 
 class TableCell(ASTNode):
     """
@@ -651,7 +720,7 @@ class TableCell(ASTNode):
         Args:
             alignment (str, optional): The cell alignment ("left", "center","right").
                 Defaults to "left".
-            children (list, optional): Child nodes. Defaults to None.
+            children (list, optional): Child nodes. Defaults to None. Represents cell body.
         """
         super().__init__("table_cell", children, attributes={"alignment": alignment})
 
@@ -671,3 +740,6 @@ class TableCell(ASTNode):
             value (str): The new alignment.
         """
         self.set_attribute("alignment", value)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_table_cell(self)

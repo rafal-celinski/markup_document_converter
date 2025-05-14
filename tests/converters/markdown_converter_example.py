@@ -1,5 +1,5 @@
-from src.markup_document_converter.converters.markdown_converter import (
-    MarkdownConverter,
+from src.markup_document_converter.parsers.markdown_parser import (
+    MarkdownParser,
 )
 
 
@@ -18,6 +18,6 @@ def print_ast(node, indent=0):
 
 
 def main():
-    converter = MarkdownConverter()
+    converter = MarkdownParser()
     root = converter.to_AST("./tests/converters/basic.md")
     print_ast(root)

@@ -1,4 +1,4 @@
-from src.markup_document_converter.converters.base_converter import BaseConverter
+from src.markup_document_converter.parsers.base_parser import BaseParser
 import src.markup_document_converter.ast as ast
 import re
 from dataclasses import dataclass
@@ -49,7 +49,7 @@ def process_prenode(node_type: NodeType) -> Callable:
     return decorator
 
 
-class MarkdownConverter(BaseConverter):
+class MarkdownParser(BaseParser):
     def __init__(self) -> None:
         """
         Initializes the MarkdownConverter. Compiles regex patterns and registers
@@ -189,7 +189,7 @@ class MarkdownConverter(BaseConverter):
                 is_table_border = p_node.node_type == NodeType.TABLE_BORDER
                 if (is_table_row or is_table_border) and not grouping_node:
                     if (
-                        pre_nodes[idx + 1]
+                        idx + 1 < len(pre_nodes)
                         and pre_nodes[idx + 1].node_type == NodeType.TABLE_BORDER
                     ):
                         grouping_node = PreNode(
@@ -557,15 +557,3 @@ class MarkdownConverter(BaseConverter):
     @process_prenode(NodeType.HORIZONTAL_RULE)
     def _process_horizontal_rule(self, node: PreNode) -> ast.ASTNode:
         return ast.HorizontalRule()
-
-    def to_file(self, ast_root: ast.ASTNode) -> str:
-        """
-        Converts the AST back to a file (not implemented).
-
-        Args:
-            ast_root (ASTNode): Root of the AST.
-
-        Returns:
-            str: Placeholder string.
-        """
-        return "In progress"
