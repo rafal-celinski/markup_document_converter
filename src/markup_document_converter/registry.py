@@ -19,13 +19,17 @@ def register_parser(name: str) -> Callable[[Type[BaseParser]], Type[BaseParser]]
         @register_parser("markdown")
         class MarkdownParser(BaseParser): ...
     """
+
     def decorator(cls: Type[BaseParser]) -> Type[BaseParser]:
         _parsers[name.lower()] = cls
         return cls
+
     return decorator
 
 
-def register_converter(name: str) -> Callable[[Type[BaseConverter]], Type[BaseConverter]]:
+def register_converter(
+    name: str,
+) -> Callable[[Type[BaseConverter]], Type[BaseConverter]]:
     """
     Class decorator to register a converter under `name`.
 
@@ -34,9 +38,11 @@ def register_converter(name: str) -> Callable[[Type[BaseConverter]], Type[BaseCo
         @register_converter("typst")
         class TypstConverter(BaseConverter): ...
     """
+
     def decorator(cls: Type[BaseConverter]) -> Type[BaseConverter]:
         _converters[name.lower()] = cls
         return cls
+
     return decorator
 
 

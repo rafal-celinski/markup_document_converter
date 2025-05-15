@@ -1,6 +1,6 @@
 [project]
 name = "markup-document-converter"
-version = "0.1.3"
+version = "0.2.2"
 description = ""
 authors = [
     {name = "Rafał Celiński",email = "dev@rafalcelinski.pl"},

@@ -11,7 +11,7 @@ from markup_document_converter.registry import (
 app = typer.Typer(
     name="markup_document_converter",
     help="Convert Markdown into Typst or LaTeX via a universal AST.",
-    add_completion=False
+    add_completion=False,
 )
 
 
@@ -77,15 +77,14 @@ def list_formats():
 
 @app.callback(invoke_without_command=True)
 def main(
-    version: bool = typer.Option(
-        None, "--version", help="Show version and exit."
-    ),
+    version: bool = typer.Option(None, "--version", help="Show version and exit."),
 ):
     """
     markup_document_converter — a universal-markup converter.
     """
     if version:
         from markup_document_converter import __version__
+
         typer.echo(f"markup_document_converter version {__version__}")
         raise typer.Exit()
 
