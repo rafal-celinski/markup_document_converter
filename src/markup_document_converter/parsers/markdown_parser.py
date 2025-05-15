@@ -1,4 +1,5 @@
-from src.markup_document_converter.parsers.base_parser import BaseParser
+from markup_document_converter.parsers.base_parser import BaseParser
+from markup_document_converter.registry import register_parser
 import src.markup_document_converter.ast as ast
 import re
 from dataclasses import dataclass, field
@@ -89,6 +90,8 @@ def process_prenode(node_type: NodeType) -> Callable:
     return decorator
 
 
+@register_parser("md")
+@register_parser("markdown")
 class MarkdownParser(BaseParser):
     def __init__(self) -> None:
         """
@@ -131,17 +134,17 @@ class MarkdownParser(BaseParser):
             if callable(method) and hasattr(method, "_node_type"):
                 self.node_funcs[method._node_type] = method
 
-    def to_AST(self, input_file: str) -> ast.ASTNode:
+    def to_AST(self, content: str) -> ast.ASTNode:
         """
-        Parses a markup file and converts it to an AST.
+        Parses markdown content and converts it to an AST.
 
         Args:
-            input_file (str): Path to the markup file.
+            content (str): Full markdown content as a string.
 
         Returns:
-            ASTNode: Parsed AST tree representing the structure of the document.
+            ASTNode: Parsed AST document.
         """
-        lines = self._get_file_contents(input_file)
+        lines = content.splitlines(keepends=True)
         root = ast.Document()
 
         pre_nodes = self._generate_prenodes(lines)
@@ -153,6 +156,7 @@ class MarkdownParser(BaseParser):
             root.add_child(ast_node)
 
         return root
+
 
     def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
         """
@@ -399,24 +403,6 @@ class MarkdownParser(BaseParser):
         post_lists = group_lists(post_code_blocks)
         post_paragraphs = group_paragraphs(post_lists)
         return post_paragraphs
-
-    def _get_file_contents(self, file_path: str) -> List[str]:
-        """
-        Reads the file content and ensures it ends with a newline.
-
-        Args:
-            file_path (str): Path to the file.
-
-        Returns:
-            List[str]: File lines with newlines preserved.
-        """
-        with open(file_path, "r") as fp:
-            text = fp.read()
-
-        if not text.endswith("\n"):
-            text += "\n"
-
-        return text.splitlines(keepends=True)
 
     def _generate_prenodes(self, lines: List[str]) -> List[PreNode]:
         """
