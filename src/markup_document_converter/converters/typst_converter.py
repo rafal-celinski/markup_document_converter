@@ -10,7 +10,7 @@ class TypstConverter(BaseConverter):
         return f"{left}{chidren_result}{right}"
 
     def convert_default(self, node: ast.ASTNode) -> str:
-        pass
+        return ""
 
     def convert_document(self, document: ast.Document) -> str:
         return self._add_markup("", "\n", document)
@@ -28,7 +28,40 @@ class TypstConverter(BaseConverter):
         return self._add_markup("#strike[", "]", strike)
 
     def convert_text(self, text: ast.Text) -> str:
-        return text.text
+        result = text.text
+
+        typst_special_chars = [
+            "\\",
+            "*",
+            "#",
+            "[",
+            "]",
+            "+",
+            "-",
+            "/",
+            "$",
+            "=",
+            "<",
+            ">",
+            "@",
+            "'",
+            '"',
+            "`",
+        ]
+
+        unusual_escapes = {
+            "_ ": "\\_ ",
+            " _": " \\_",
+        }
+
+        # escape special chars
+        for char in typst_special_chars:
+            result = result.replace(char, f"\\{char}")
+
+        for char, escape_char in unusual_escapes.items():
+            result = result.replace(char, escape_char)
+
+        return result
 
     def convert_paragraph(self, paragraph: ast.Paragraph) -> str:
         return self._add_markup("\n", "\n", paragraph)
@@ -40,33 +73,67 @@ class TypstConverter(BaseConverter):
         return self._add_markup("#quote[", "]", blockquote)
 
     def convert_list(self, list_node: ast.List) -> str:
+        def add_indent(text: str, indent: str):
+            has_trailing_newline = text.endswith("\n")
+            if has_trailing_newline:
+                text = text[:-1]
 
+            text = text.replace("\n", f"\n{indent}")
+
+            if has_trailing_newline:
+                text = text + "\n"
+            return text
+
+        indent = "\t"
         result = "\n"
 
         for child in list_node.children:
             if list_node.list_type == "unordered":
-                marker = "-"  # unordered
-            elif child.order is None:
-                marker = "+"  # auto ordered
+                marker = "-"
+            elif child.order is not None:
+                marker = f"{child.order}."
             else:
-                marker = f"{child.order}."  # ordered
+                marker = "+"
 
-            result += f"{marker} " + child.convert(self) + "\n"
+            child_content = child.convert(self)
+
+            child_content = add_indent(child_content, indent)
+
+            result += f"{marker} {child_content}"
 
         return result
 
     def convert_list_item(self, list_item: ast.ListItem) -> str:
-        chidren_result = "".join([child.convert(self) for child in list_item.children])
-        return chidren_result
+        children_result = "".join([child.convert(self) for child in list_item.children])
+
+        if not children_result.endswith("\n"):
+            children_result += "\n"
+
+        return children_result
+
+    def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
+        if task_list_item.checked:
+            return self._add_markup("[x] ", "\n", task_list_item)
+        else:
+            return self._add_markup("[ ] ", "\n", task_list_item)
 
     def convert_code_block(self, code_block: ast.CodeBlock) -> str:
-        return f"```{code_block.language}\n" + f"{code_block.code}\n```"
+        return (
+            f"```{code_block.language if code_block.language else ''}\n"
+            + f"{code_block.code}\n```"
+        )
 
     def convert_inline_code(self, inline_code: ast.InlineCode) -> str:
-        return f"```{inline_code.language} {inline_code.code}```"
+        return f"```{inline_code.language+' ' if inline_code.language else ''}{inline_code.code}```"
 
     def convert_image(self, image: ast.Image) -> str:
-        return f'#image("{image.source}", alt: "{image.alt_text}")'
+        result = f'#image("{image.source}"'
+
+        if image.alt_text:
+            result += f', alt: "{image.alt_text}"'
+        result += ")"
+
+        return result
 
     def convert_link(self, link: ast.Link) -> str:
         link_text = "".join([child.convert(self) for child in link.children])
@@ -86,9 +153,11 @@ class TypstConverter(BaseConverter):
 
         for row in table.children:
             result += "\t"
-            for cell in row.children:
-                result += f"[{cell.convert(self)}], "
-            result += "[], " * (columns - len(row.children))
+            result += row.convert(self)
+
+            if not row.is_header:
+                result += "[], " * (columns - len(row.children))
+
             result += "\n"
 
         result += ")\n"
@@ -96,14 +165,14 @@ class TypstConverter(BaseConverter):
         return result
 
     def convert_table_row(self, table_row: ast.TableRow) -> str:
-        pass
+        result = ""
+        for cell in table_row.children:
+            result += f"[{cell.convert(self)}], "
+
+        if table_row.is_header:
+            result = f"table.header({result}),"
+        return result
 
     def convert_table_cell(self, table_cell: ast.TableCell) -> str:
         cell_text = "".join([child.convert(self) for child in table_cell.children])
         return cell_text
-
-    def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
-        if task_list_item.checked:
-            return self._add_markup("\n[x] ", "\n", task_list_item)
-        else:
-            return self._add_markup("\n[ ] ", "\n", task_list_item)

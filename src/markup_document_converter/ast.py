@@ -318,7 +318,7 @@ class ListItem(ASTNode):
     Represents an item within a list.
     """
 
-    def __init__(self, order, nesting, children=None, attributes: dict = None):
+    def __init__(self, order=None, children=None):
         """
         Initialize a ListItem node.
 
@@ -329,7 +329,7 @@ class ListItem(ASTNode):
         super().__init__(
             "list_item",
             children,
-            attributes={"order": order, "nesting": nesting} | (attributes or {}),
+            attributes={"order": order},
         )
 
     @property
@@ -337,14 +337,7 @@ class ListItem(ASTNode):
         """
         int: The order of the list item.
         """
-        return self.attributes.get("order", "")
-
-    @property
-    def nesting(self):
-        """
-        int: Nesting level of the list item
-        """
-        return self.attributes.get("nesting", 0)
+        return self.attributes.get("order", None)
 
     @order.setter
     def order(self, value):
@@ -359,23 +352,13 @@ class ListItem(ASTNode):
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_list_item(self)
 
-    @nesting.setter
-    def nesting(self, value):
-        """
-        Set the nesting level of the list item
-
-        Args:
-            value (int): The new nesting level
-        """
-        self.set_attribute("nesting", value)
-
 
 class TaskListItem(ListItem):
     """
     Represents a task list item with a checked/unchecked state.
     """
 
-    def __init__(self, nesting, checked=False, children=None):
+    def __init__(self, order=None, checked=False, children=None):
         """
         Initialize a TaskListItem node.
 
@@ -383,9 +366,9 @@ class TaskListItem(ListItem):
             checked (bool, optional): Whether the task is checked. Defaults to False.
             children (list, optional): Child nodes. Defaults to None.
         """
-        super().__init__(
-            "item_list", nesting, children, attributes={"checked": checked}
-        )
+        super().__init__(order=order, children=children)
+        self._node_type = "task_list_item"
+        self.set_attribute("checked", checked)
 
     @property
     def checked(self):
@@ -404,13 +387,16 @@ class TaskListItem(ListItem):
         """
         self.set_attribute("checked", value)
 
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_task_list_item(self)
+
 
 class CodeBlock(ASTNode):
     """
     Represents a code block with optional language specification.
     """
 
-    def __init__(self, code, language):
+    def __init__(self, code, language=None):
         """
         Initialize a CodeBlock node.
 
@@ -463,7 +449,7 @@ class InlineCode(ASTNode):
     Represents an inline code span.
     """
 
-    def __init__(self, code):
+    def __init__(self, code, language=None):
         """
         Initialize an InlineCode node.
 
@@ -516,7 +502,7 @@ class Image(ASTNode):
     Represents an image node with source and alt text.
     """
 
-    def __init__(self, source, alt_text):
+    def __init__(self, source, alt_text=None):
         """
         Initialize an Image node.
 
@@ -548,7 +534,7 @@ class Image(ASTNode):
         """
         str: The alternative text for the image.
         """
-        return self.attributes.get("alt_text", "")
+        return self.attributes.get("alt_text", None)
 
     @alt_text.setter
     def alt_text(self, value):
