@@ -72,9 +72,7 @@ class TestCLICommands:
 
     def test_convert_complex_markdown(self, runner, tmp_path):
         input_file = tmp_path / "test.md"
-        input_file.write_text(
-            "# Complex\n\nThis is a CLI smoke-test."
-        )
+        input_file.write_text("# Complex\n\nThis is a CLI smoke-test.")
 
         result = runner.invoke(app, ["convert", str(input_file), "--to", "typst"])
         assert result.exit_code == 0
