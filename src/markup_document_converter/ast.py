@@ -457,7 +457,7 @@ class InlineCode(ASTNode):
             code (str): The inline code content.
             language (str): The programming language of the code.
         """
-        super().__init__("inline_code", attributes={"code": code})
+        super().__init__("inline_code", attributes={"code": code, "language": language})
 
     @property
     def code(self):
