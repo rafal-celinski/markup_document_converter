@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from markup_document_converter.ast import ASTNode
+from markup_document_converter.ast import Document
 
 
 class BaseParser(ABC):
     @abstractmethod
-    def to_AST(self, content: str) -> ASTNode:
+    def to_AST(self, content: str) -> Document:
         """
         Parse input content string to universal AST tree.
 
@@ -12,6 +12,6 @@ class BaseParser(ABC):
             content (str): The full markup content as a single string.
 
         Returns:
-            ASTNode: The root of the generated abstract syntax tree.
+            Document: The root of the generated abstract syntax tree.
         """
         pass
