@@ -4,14 +4,14 @@ from markup_document_converter.ast import ASTNode
 
 class BaseParser(ABC):
     @abstractmethod
-    def to_AST(self, input_file: str) -> ASTNode:
+    def to_AST(self, content: str) -> ASTNode:
         """
-        Parse input file to universal AST tree.
+        Parse input content string to universal AST tree.
 
         Args:
-            input_file (str): Path to the input file
+            content (str): The full markup content as a single string.
 
         Returns:
-            ASTNode: The root of the generated abstract syntax tree
+            ASTNode: The root of the generated abstract syntax tree.
         """
         pass

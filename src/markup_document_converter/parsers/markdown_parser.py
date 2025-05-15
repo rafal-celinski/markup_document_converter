@@ -97,17 +97,17 @@ class MarkdownParser(BaseParser):
             if callable(method) and hasattr(method, "_node_type"):
                 self.node_funcs[method._node_type] = method
 
-    def to_AST(self, input_file: str) -> ast.ASTNode:
+    def to_AST(self, content: str) -> ast.ASTNode:
         """
-        Parses a markup file and converts it to an AST.
+        Parses markdown content and converts it to an AST.
 
         Args:
-            input_file (str): Path to the markup file.
+            content (str): Full markdown content as a string.
 
         Returns:
-            ASTNode: Parsed AST tree representing the structure of the document.
+            ASTNode: Parsed AST document.
         """
-        lines = self._get_file_contents(input_file)
+        lines = content.splitlines(keepends=True)
         root = ast.Document()
 
         pre_nodes = self._generate_prenodes(lines)
@@ -118,8 +118,7 @@ class MarkdownParser(BaseParser):
             ast_node = handler(node)
             root.add_child(ast_node)
 
-        root = self._group_lists(root)
-        return root
+        return self._group_lists(root)
 
     def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
         """
@@ -333,24 +332,6 @@ class MarkdownParser(BaseParser):
 
         merger(0, 0, grouped_root)
         return grouped_root
-
-    def _get_file_contents(self, file_path: str) -> List[str]:
-        """
-        Reads the file content and ensures it ends with a newline.
-
-        Args:
-            file_path (str): Path to the file.
-
-        Returns:
-            List[str]: File lines with newlines preserved.
-        """
-        with open(file_path, "r") as fp:
-            text = fp.read()
-
-        if not text.endswith("\n"):
-            text += "\n"
-
-        return text.splitlines(keepends=True)
 
     def _generate_prenodes(self, lines: List[str]) -> List[PreNode]:
         """

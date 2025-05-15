@@ -4,13 +4,12 @@ from markup_document_converter.registry import get_parser, get_converter
 
 def convert_document(input_path: str, target_format: str) -> str:
     """
-    Read a source file, parse it into the universal AST, and render it via the
+    Read a source file, parse its content into the universal AST, and render it via the
     specified converter.
 
     Args:
         input_path (str): Path to the input file (e.g. 'README.md').
-        target_format (str): Key for the desired converter
-                             (e.g. 'typst', 'latex').
+        target_format (str): Key for the desired converter (e.g. 'typst', 'latex').
 
     Returns:
         str: The fully rendered document in the target format.
@@ -23,13 +22,21 @@ def convert_document(input_path: str, target_format: str) -> str:
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
+    content = get_content(input_path)
+
     _, ext = os.path.splitext(input_path)
-    parser_name = ext.lstrip('.').lower()
+    parser_name = ext.lstrip(".").lower()
     parser = get_parser(parser_name)
 
-    ast_root = parser.to_AST(input_path)
+    ast_root = parser.to_AST(content)
 
     converter = get_converter(target_format)
-    output = converter.convert_document(ast_root)
+    return converter.convert_document(ast_root)
 
-    return output
+
+def get_content(input_path: str) -> str:
+    with open(input_path, "r") as fp:
+        content = fp.read()
+    if not content.endswith("\n"):
+        content += "\n"
+    return content
