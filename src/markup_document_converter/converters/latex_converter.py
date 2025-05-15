@@ -24,6 +24,7 @@ class LatexConverter(BaseConverter):
             "\\usepackage{hyperref}\n"
             "\\usepackage{graphicx}\n"
             "\\usepackage[normalem]{ulem}\n"
+            "\\usepackage{listings}\n"
             "\\usepackage{booktabs}\n"
             "\\begin{document}\n"
             f"{body}\n"
