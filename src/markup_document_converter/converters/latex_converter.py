@@ -13,15 +13,9 @@ class LatexConverter(BaseConverter):
     """
 
     def convert_default(self, node: ast.ASTNode) -> str:
-        """
-        Fallback for any AST nodes without a dedicated handler.
-        """
         return "".join(child.convert(self) for child in node.children)
 
     def convert_document(self, document: ast.Document) -> str:
-        """
-        Wrap all children in a standard LaTeX article skeleton.
-        """
         body = "".join(child.convert(self) for child in document.children)
         return (
             "\\documentclass{article}\n"
@@ -30,48 +24,36 @@ class LatexConverter(BaseConverter):
             "\\usepackage{hyperref}\n"
             "\\usepackage{graphicx}\n"
             "\\usepackage[normalem]{ulem}\n"
+            "\\usepackage{booktabs}\n"
             "\\begin{document}\n"
             f"{body}\n"
             "\\end{document}\n"
         )
 
     def convert_heading(self, heading: ast.Heading) -> str:
-        """
-        Map heading levels - section, subsection, etc.
-        """
-        level_map = {
-            1: "section",
-            2: "subsection",
-            3: "subsubsection"
-        }
+        level_map = {1: "section", 2: "subsection", 3: "subsubsection"}
         cmd = level_map.get(heading.level, "paragraph")
         title = "".join(child.convert(self) for child in heading.children)
         return f"\\{cmd}{{{title}}}\n\n"
 
     def convert_paragraph(self, paragraph: ast.Paragraph) -> str:
-        """
-        Leave a blank line between paragraphs.
-        """
         text = "".join(child.convert(self) for child in paragraph.children)
         return f"{text}\n\n"
 
     def convert_text(self, text: ast.Text) -> str:
-        """
-        Escape LaTeX special chars if needed.
-        """
-        return (
-            text.text
-            .replace("\\", "\\textbackslash{}")
-            .replace("&", "\\&")
-            .replace("%", "\\%")
-            .replace("$", "\\$")
-            .replace("#", "\\#")
-            .replace("_", "\\_")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-            .replace("~", "\\textasciitilde{}")
-            .replace("^", "\\textasciicircum{}")
-        )
+        escapes = {
+            "\\": r"\textbackslash{}",
+            "&": r"\&",
+            "%": r"\%",
+            "$": r"\$",
+            "#": r"\#",
+            "_": r"\_",
+            "{": r"\{",
+            "}": r"\}",
+            "~": r"\textasciitilde{}",
+            "^": r"\textasciicircum{}",
+        }
+        return "".join(escapes.get(ch, ch) for ch in text.text)
 
     def convert_bold(self, bold: ast.Bold) -> str:
         content = "".join(child.convert(self) for child in bold.children)
@@ -93,9 +75,6 @@ class LatexConverter(BaseConverter):
         return f"\\begin{{quote}}\n{inner}\\end{{quote}}\n\n"
 
     def convert_list(self, list_node: ast.List) -> str:
-        """
-        Wrap children in itemize/enumerate based on list_type.
-        """
         env = "itemize" if list_node.list_type == "unordered" else "enumerate"
         items = "".join(child.convert(self) for child in list_node.children)
         return f"\\begin{{{env}}}\n{items}\\end{{{env}}}\n\n"
@@ -105,9 +84,6 @@ class LatexConverter(BaseConverter):
         return f"  \\item {content}\n"
 
     def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
-        """
-        Render as [x] or [ ] then itemize.
-        """
         box = r"$\boxtimes$" if task_list_item.checked else r"$\square$"
         content = "".join(child.convert(self) for child in task_list_item.children)
         return f"  \\item[{box}] {content}\n"
@@ -142,22 +118,30 @@ class LatexConverter(BaseConverter):
     def convert_horizontal_rule(self, hr: ast.HorizontalRule) -> str:
         return "\\noindent\\rule{\\linewidth}{0.4pt}\n\n"
 
+    def convert_table_row(self, table_row: ast.TableRow) -> str:
+        cells = [child.convert(self) for child in table_row.children]
+        if table_row.is_header:
+            cells = [f"\\textbf{{{cell}}}" for cell in cells]
+        return " & ".join(cells) + " \\\\"
+
     def convert_table(self, table: ast.Table) -> str:
-        """
-        Use a simple tabular with | columns.
-        """
+        if not table.children:
+            return ""
         cols = max(len(r.children) for r in table.children)
         fmt = "|".join(["l"] * cols)
         rows = []
-        for row in table.children:
-            cells = [child.convert(self) for child in row.children]
-            cells += [""] * (cols - len(cells))
-            rows.append(" & ".join(cells) + " \\\\")
-        body = "\n".join(rows)
-        return f"\\begin{{tabular}}{{|{fmt}|}}\n\\hline\n{body}\n\\hline\n\\end{{tabular}}\n\n"
 
-    def convert_table_row(self, table_row: ast.TableRow) -> str:
-        return ""
+        rows.append("\\toprule")
+
+        for row in table.children:
+            rows.append(row.convert(self))
+            if row.is_header:
+                rows.append("\\midrule")
+
+        rows.append("\\bottomrule")
+
+        body = "\n".join(rows)
+        return f"\\begin{{tabular}}{{|{fmt}|}}\n{body}\n\\end{{tabular}}\n\n"
 
     def convert_table_cell(self, table_cell: ast.TableCell) -> str:
         return "".join(child.convert(self) for child in table_cell.children)
