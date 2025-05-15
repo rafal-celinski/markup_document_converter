@@ -27,6 +27,43 @@ class NodeType(Enum):
     BLOCKQOUTE_GROUP = auto()
 
 
+def print_node(node, indent=0):
+    INDENT = "  "
+    prefix = INDENT * indent
+
+    if node.node_type == NodeType.HEADING:
+        print(node.content.strip())
+    elif node.node_type == NodeType.TEXT:
+        print(f"{prefix}{node.content.strip()}")
+    elif node.node_type == NodeType.LINE_BREAK:
+        print()
+    elif node.node_type == NodeType.HORIZONTAL_RULE:
+        print("---")
+    elif node.node_type == NodeType.BLOCKQOUTE:
+        for child in node.pre_children:
+            print(f"{prefix}> {child.content.strip()}")
+    elif node.node_type == NodeType.UR_LIST_ITEM:
+        print(f"{prefix}- {get_text_content(node)}")
+    elif node.node_type == NodeType.OR_LIST_ITEM:
+        print(f"{prefix}1. {get_text_content(node)}")
+    elif node.node_type == NodeType.TASK_LIST_ITEM:
+        content = get_text_content(node)
+        print(f"{prefix}- {content.strip()}")
+    elif node.node_type == NodeType.LIST:
+        for child in node.pre_children:
+            print_node(child, indent=indent + 1)
+    else:
+        for child in node.pre_children:
+            print_node(child, indent=indent)
+
+
+def get_text_content(node):
+    """Recursively gets text content from a node."""
+    if node.node_type == NodeType.TEXT:
+        return node.content.strip()
+    return " ".join(get_text_content(child) for child in node.pre_children)
+
+
 @dataclass(order=True)
 class PreNode:
     node_type: NodeType
@@ -64,9 +101,9 @@ class MarkdownParser(BaseParser):
             NodeType.HEADING: r"^(#+)\s.*\n$",
             NodeType.HORIZONTAL_RULE: r"^\s*([*\-_])(?:\s*\1){2,}\s*\n$",
             # TASK_LIST_ITEM must be checked first because this type is subset of other list items
-            # NodeType.TASK_LIST_ITEM: r"^\s*([-*+]|\d+\.)\s+\[( |x|X)\]\s+.*\n$",
-            # NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n$",
-            # NodeType.OR_LIST_ITEM: r"^\s*\d+\.\s+.*\n$",
+            NodeType.TASK_LIST_ITEM: r"^\s*([-*+]|\d+\.)\s+\[( |x|X)\]\s+.*\n$",
+            NodeType.UR_LIST_ITEM: r"^\s*[-*+]\s.*\n$",
+            NodeType.OR_LIST_ITEM: r"^\s*\d+\.\s+.*\n$",
             NodeType.LINE_BREAK: r"^\s*$",
             NodeType.BLOCKQOUTE: r"^\s*>+.*\n$",
             NodeType.CODE_BORDER: r"^\s*```.*\n$",
@@ -110,15 +147,11 @@ class MarkdownParser(BaseParser):
         pre_nodes = self._generate_prenodes(lines)
         pre_nodes = self._group_pre_nodes(pre_nodes)
 
-        for nd in pre_nodes:
-            print(nd)
-
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
             ast_node = handler(node)
             root.add_child(ast_node)
 
-        root = self._group_lists(root)
         return root
 
     def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
@@ -192,32 +225,97 @@ class MarkdownParser(BaseParser):
             return new_grouped
 
         def group_lists(pre_nodes: list[PreNode]):
-            single_types = [NodeType.HEADING, NodeType.LINE_BREAK, NodeType.CODE_BLOCK]
+            def merger(
+                idx: int, nesting_lvl: int, list_root: PreNode, p_nodes: list[PreNode]
+            ) -> int:
+                list_node = None
+                list_type = None
+                while idx < len(p_nodes):
+                    p_node = p_nodes[idx]
+                    if p_node.node_type in list_element_types:
+                        curr_nesting = (
+                            len(p_node.pre_children[0].content)
+                            - len(p_node.pre_children[0].content.lstrip())
+                        ) // 2
+                        if curr_nesting == nesting_lvl:
+                            if not list_type:
+                                list_type = p_node.node_type
+                                list_node = PreNode(node_type=NodeType.LIST)
+                                list_node.pre_children.append(p_node)
+                            elif list_type and list_type == p_node.node_type:
+                                list_node.pre_children.append(p_node)
+                            elif list_type and list_type != p_node.node_type:
+                                if nesting_lvl == 0:
+                                    list_root.append(list_node)
+                                else:
+                                    list_root.pre_children.append(list_node)
+                                list_node = PreNode(node_type=NodeType.LIST)
+                                list_node.pre_children.append(p_node)
+                                list_type = p_node.node_type
+                            idx += 1
+                        elif curr_nesting > nesting_lvl:
+                            idx = merger(idx, nesting_lvl + 1, list_node, p_nodes)
+                        elif curr_nesting < nesting_lvl:
+                            list_root.pre_children.append(list_node)
+                            return idx
+                    else:
+                        if list_node:
+                            if nesting_lvl == 0:
+                                list_root.append(list_node)
+                                list_root.append(p_node)
+                            else:
+                                list_root.pre_children.append(list_node)
+                                return idx
+                            list_type = None
+                            list_node = None
+                        else:
+                            list_root.append(p_node)
+
+                        idx += 1
+                if list_type:
+                    if nesting_lvl == 0:
+                        list_root.append(list_node)
+                    else:
+                        list_root.pre_children.append(list_node)
+                    return idx
+                return idx
+
+            list_element_types = [
+                NodeType.OR_LIST_ITEM,
+                NodeType.UR_LIST_ITEM,
+                NodeType.TASK_LIST_ITEM,
+            ]
+
             grouped = []
             grouping_node = None
 
-            for node in pre_nodes:
-                if node.node_type in single_types:
+            for p_node in pre_nodes:
+                if p_node.node_type == NodeType.TEXT:
+                    if grouping_node:
+                        grouping_node.pre_children.append(p_node)
+                    else:
+                        grouped.append(p_node)
+                elif p_node.node_type in list_element_types:
+                    p_node.pre_children = [
+                        PreNode(node_type=NodeType.TEXT, content=p_node.content)
+                    ]
+                    p_node.content = ""
                     if grouping_node:
                         grouped.append(grouping_node)
-                        grouping_node = None
-                    grouped.append(node)
+                    grouping_node = p_node
                 else:
-                    if not grouping_node:
-                        grouping_node = node
-                    else:
-                        if node.node_type == NodeType.TEXT:
-                            grouping_node.content += node.content
-                        else:
-                            grouped.append(grouping_node)
-                            grouping_node = node
-                    if grouping_node and grouping_node.node_type == NodeType.TEXT:
-                        grouping_node.node_type = NodeType.PARAGRAPH
+                    if grouping_node:
+                        grouped.append(grouping_node)
+                    grouping_node = None
+                    grouped.append(p_node)
 
             if grouping_node:
                 grouped.append(grouping_node)
 
-            return grouped
+            new_grouped = []
+            merger(0, 0, new_grouped, grouped)
+
+            return new_grouped
 
         def group_code_blocks(pre_nodes: list[PreNode]):
             grouped = []
@@ -276,63 +374,31 @@ class MarkdownParser(BaseParser):
                 grouped.append(grouping_node)
             return grouped
 
+        def group_paragraphs(pre_nodes):
+            grouped = []
+            grouping_node = None
+            for p_node in pre_nodes:
+                if p_node.node_type == NodeType.TEXT and not grouping_node:
+                    grouping_node = PreNode(NodeType.PARAGRAPH)
+                    grouping_node.pre_children.append(p_node)
+                elif p_node.node_type == NodeType.TEXT and grouping_node:
+                    grouping_node.pre_children.append(p_node)
+                else:
+                    if grouping_node:
+                        grouped.append(grouping_node)
+                        grouping_node = None
+                    grouped.append(p_node)
+            if grouping_node:
+                grouped.append(grouping_node)
+
+            return grouped
+
         post_change_incorrect_table_rows = group_table_rows(pre_nodes)
         post_blockqoutes = group_blockqoutes(post_change_incorrect_table_rows)
         post_code_blocks = group_code_blocks(post_blockqoutes)
         post_lists = group_lists(post_code_blocks)
-
-        return post_lists
-
-    def _group_lists(self, original_root: ast.ASTNode) -> ast.ASTNode:
-        """
-        Groups list item nodes into nested list structures in the AST.
-
-        Args:
-            original_root (ASTNode): Root node with flat children.
-
-        Returns:
-            ASTNode: Root node with grouped list structures.
-        """
-        grouped_root = ast.Document()
-
-        def merger(idx: int, nesting_lvl: int, list_root: ast.ASTNode) -> int:
-            curr_list = None
-            while idx < len(original_root.children):
-                node = original_root.children[idx]
-                if node.node_type == "list_item" and node.nesting == nesting_lvl:
-                    if curr_list and curr_list.list_type == node.order:
-                        curr_list.add_child(node)
-                    else:
-                        if curr_list:
-                            list_root.add_child(curr_list)
-                        curr_list = ast.List(list_type=node.order, children=[node])
-                    idx += 1
-                elif node.node_type == "list_item" and node.nesting < nesting_lvl:
-                    if curr_list:
-                        list_root.add_child(curr_list)
-                    return idx
-                elif node.node_type == "list_item" and node.nesting > nesting_lvl:
-                    new_list_root = ast.ListItem(order=node.order, nesting=node.nesting)
-                    if curr_list:
-                        curr_list.add_child(new_list_root)
-                        idx = merger(idx, node.nesting, new_list_root)
-                    else:
-                        idx = merger(idx, node.nesting, list_root)
-                else:
-                    if curr_list:
-                        list_root.add_child(curr_list)
-                        curr_list = None
-                    if nesting_lvl != 0:
-                        return idx
-                    else:
-                        list_root.add_child(node)
-                        idx += 1
-            if curr_list:
-                list_root.add_child(curr_list)
-            return idx
-
-        merger(0, 0, grouped_root)
-        return grouped_root
+        post_paragraphs = group_paragraphs(post_lists)
+        return post_paragraphs
 
     def _get_file_contents(self, file_path: str) -> List[str]:
         """
@@ -486,42 +552,55 @@ class MarkdownParser(BaseParser):
             heading.add_child(child)
         return heading
 
-    # @process_prenode(NodeType.UR_LIST_ITEM)
-    # def _process_ur_list_item(self, node: PreNode) -> ast.ASTNode:
-    #     """Parses unordered list item into ListItem AST node."""
-    #     nesting_level = len(node.content) - len(node.content.lstrip())
-    #     node.content = node.content[nesting_level + 2 :]
-    #     list_item = ast.ListItem(order="unordered", nesting=nesting_level)
-    #     for child in self._parse_inline(node.content):
-    #         list_item.add_child(child)
-    #     return list_item
+    @process_prenode(NodeType.UR_LIST_ITEM)
+    def _process_ur_list_item(self, node: PreNode) -> ast.ASTNode:
+        """Parses unordered list item into ListItem AST node."""
+        nesting_level = len(node.pre_children[0].content) - len(
+            node.pre_children[0].content.lstrip()
+        )
+        node.pre_children[0].content = node.pre_children[0].content[nesting_level + 2 :]
+        list_item = ast.ListItem()
+        for p_node in node.pre_children:
+            for child in self._parse_inline(p_node.content):
+                list_item.add_child(child)
+        return list_item
 
-    # @process_prenode(NodeType.OR_LIST_ITEM)
-    # def _process_or_list_item(self, node: PreNode) -> ast.ASTNode:
-    #     """Parses ordered list item into ListItem AST node."""
-    #     nesting_level = len(node.content) - len(node.content.lstrip())
-    #     num_len = len(re.findall(r"\s*(\d*\.\s)", node.content)[0])
-    #     node.content = node.content[nesting_level + num_len :]
-    #     list_item = ast.ListItem(order="ordered", nesting=nesting_level)
-    #     for child in self._parse_inline(node.content):
-    #         list_item.add_child(child)
-    #     return list_item
+    @process_prenode(NodeType.OR_LIST_ITEM)
+    def _process_or_list_item(self, node: PreNode) -> ast.ASTNode:
+        """Parses ordered list item into ListItem AST node."""
+        nesting_level = len(node.pre_children[0].content) - len(
+            node.pre_children[0].content.lstrip()
+        )
+        num_len = len(re.findall(r"\s*(\d*\.\s)", node.pre_children[0].content)[0])
+        match = re.match(r"^\s*(\d+)\.\s", node.pre_children[0].content)
+        if match:
+            order = match.group(1)
+        node.pre_children[0].content = node.pre_children[0].content[
+            nesting_level + num_len :
+        ]
+        list_item = ast.ListItem(order=int(order))
+        for p_node in node.pre_children:
+            for child in self._parse_inline(p_node.content):
+                list_item.add_child(child)
+        return list_item
 
-    # @process_prenode(NodeType.TASK_LIST_ITEM)
-    # def _process_task_list_item(self, node: PreNode) -> ast.ASTNode:
-    #     """Parses task list item into TaskListItem AST node."""
-    #     nesting_level = len(node.content) - len(node.content.lstrip())
-    #     checked_sign = re.findall(r"\[( |x|X)\]", node.content)[0]
-    #     checked_sign = not checked_sign.strip() == ""
-    #     sign_len = len(
-    #         re.findall(r"(\s*([-*+]|\d+\.)\s+\[( |x|X)\]\s)", node.content)[0][0]
-    #     )
-    #     node.content = node.content[sign_len:]
+    @process_prenode(NodeType.TASK_LIST_ITEM)
+    def _process_task_list_item(self, node: PreNode) -> ast.ASTNode:
+        """Parses task list item into TaskListItem AST node."""
+        checked_sign = re.findall(r"\[( |x|X)\]", node.pre_children[0].content)[0]
+        checked_sign = not checked_sign.strip() == ""
+        sign_len = len(
+            re.findall(
+                r"(\s*([-*+]|\d+\.)\s+\[( |x|X)\]\s)", node.pre_children[0].content
+            )[0][0]
+        )
+        node.pre_children[0].content = node.pre_children[0].content[sign_len:]
 
-    #     list_item = ast.TaskListItem(nesting=nesting_level, checked=checked_sign)
-    #     for child in self._parse_inline(node.content):
-    #         list_item.add_child(child)
-    #     return list_item
+        list_item = ast.TaskListItem(checked=checked_sign)
+        for p_node in node.pre_children:
+            for child in self._parse_inline(p_node.content):
+                list_item.add_child(child)
+        return list_item
 
     @process_prenode(NodeType.PARAGRAPH)
     def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
@@ -535,8 +614,9 @@ class MarkdownParser(BaseParser):
             Paragraph: A Paragraph AST node with parsed inline children.
         """
         paragraph_node = ast.Paragraph()
-        for inline_child in self._parse_inline(node.content):
-            paragraph_node.add_child(inline_child)
+        for p_node in node.pre_children:
+            for inline_child in self._parse_inline(p_node.content):
+                paragraph_node.add_child(inline_child)
         return paragraph_node
 
     @process_prenode(NodeType.BLOCKQOUTE)
@@ -623,3 +703,25 @@ class MarkdownParser(BaseParser):
     @process_prenode(NodeType.HORIZONTAL_RULE)
     def _process_horizontal_rule(self, node: PreNode) -> ast.ASTNode:
         return ast.HorizontalRule()
+
+    @process_prenode(NodeType.LIST)
+    def _process_list(self, node: PreNode) -> ast.ASTNode:
+        list_node = ast.List(list_type="unordered")
+
+        for child in node.pre_children:
+            if child.node_type == NodeType.UR_LIST_ITEM:
+                list_node.list_type = "unordered"
+                break
+            elif child.node_type == NodeType.OR_LIST_ITEM:
+                list_node.list_type = "ordered"
+                break
+            elif child.node_type == NodeType.TASK_LIST_ITEM:
+                list_node.list_type = "task"
+                break
+
+        for child in node.pre_children:
+            handler = self.node_funcs[child.node_type]
+            ast_node = handler(child)
+            list_node.add_child(ast_node)
+
+        return list_node
