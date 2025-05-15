@@ -11,7 +11,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pytest (>=8.3.5,<9.0.0)",
-    "typer[all] (>=0.15.3,<0.16.0)"
+    "typer[all] (>=0.15.3,<0.16.0)",
+    "pytest-cov (>=6.1.1,<7.0.0)"
 ]
 
 [tool.poetry]
