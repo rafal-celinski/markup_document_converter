@@ -157,7 +157,6 @@ class MarkdownParser(BaseParser):
 
         return root
 
-
     def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
         """
         Groups consecutive TEXT nodes into PARAGRAPH nodes and retains single-line node types.
