@@ -101,13 +101,19 @@ class TypstConverter(BaseConverter):
 
         return result
 
-    def convert_list_item(self, list_item: ast.ListItem, indent_level=0) -> str:
+    def convert_list_item(self, list_item: ast.ListItem) -> str:
         children_result = "".join([child.convert(self) for child in list_item.children])
 
         if not children_result.endswith("\n"):
             children_result += "\n"
 
         return children_result
+
+    def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
+        if task_list_item.checked:
+            return self._add_markup("[x] ", "\n", task_list_item)
+        else:
+            return self._add_markup("[ ] ", "\n", task_list_item)
 
     def convert_code_block(self, code_block: ast.CodeBlock) -> str:
         return (
@@ -168,9 +174,3 @@ class TypstConverter(BaseConverter):
     def convert_table_cell(self, table_cell: ast.TableCell) -> str:
         cell_text = "".join([child.convert(self) for child in table_cell.children])
         return cell_text
-
-    def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
-        if task_list_item.checked:
-            return self._add_markup("\n[x] ", "\n", task_list_item)
-        else:
-            return self._add_markup("\n[ ] ", "\n", task_list_item)

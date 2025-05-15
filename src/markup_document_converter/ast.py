@@ -326,14 +326,18 @@ class ListItem(ASTNode):
             order (int, optional): The order of the item in the list.
             children (list, optional): Child nodes. Defaults to None. Represents list element body.
         """
-        super().__init__("list_item", children, attributes={"order": order})
+        super().__init__(
+            "list_item",
+            children,
+            attributes={"order": order},
+        )
 
     @property
     def order(self):
         """
         int: The order of the list item.
         """
-        return self.attributes.get("order", "")
+        return self.attributes.get("order", None)
 
     @order.setter
     def order(self, value):
@@ -347,6 +351,44 @@ class ListItem(ASTNode):
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_list_item(self)
+
+
+class TaskListItem(ListItem):
+    """
+    Represents a task list item with a checked/unchecked state.
+    """
+
+    def __init__(self, order=None, checked=False, children=None):
+        """
+        Initialize a TaskListItem node.
+
+        Args:
+            checked (bool, optional): Whether the task is checked. Defaults to False.
+            children (list, optional): Child nodes. Defaults to None.
+        """
+        super().__init__(order=order, children=children)
+        self._node_type = "task_list_item"
+        self.set_attribute("checked", checked)
+
+    @property
+    def checked(self):
+        """
+        bool: Whether the task is checked.
+        """
+        return self.attributes.get("checked", False)
+
+    @checked.setter
+    def checked(self, value):
+        """
+        Set the checked state of the task.
+
+        Args:
+            value (bool): The new checked state.
+        """
+        self.set_attribute("checked", value)
+
+    def convert(self, converter: "BaseConverter") -> str:
+        return converter.convert_task_list_item(self)
 
 
 class CodeBlock(ASTNode):
@@ -648,41 +690,3 @@ class TableCell(ASTNode):
 
     def convert(self, converter: "BaseConverter") -> str:
         return converter.convert_table_cell(self)
-
-
-class TaskListItem(ASTNode):
-    """
-    Represents a task list item with a checked/unchecked state.
-    """
-
-    def __init__(self, checked=False, children=None):
-        """
-        Initialize a TaskListItem node.
-
-        Args:
-            checked (bool, optional): Whether the task is checked. Defaults to False.
-            children (list, optional): List of children. Represents body of task list item
-        """
-        super().__init__(
-            "task_list_item", attributes={"checked": checked}, children=children
-        )
-
-    @property
-    def checked(self):
-        """
-        bool: Whether the task is checked.
-        """
-        return self.attributes.get("checked", False)
-
-    @checked.setter
-    def checked(self, value):
-        """
-        Set the checked state of the task.
-
-        Args:
-            value (bool): The new checked state.
-        """
-        self.set_attribute("checked", value)
-
-    def convert(self, converter: "BaseConverter") -> str:
-        return converter.convert_task_list_item(self)

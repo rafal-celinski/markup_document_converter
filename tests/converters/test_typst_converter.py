@@ -225,6 +225,51 @@ class TestTypstConverter:
 
         assert result == "\n- Item 1\n" + "- Item 2\n" + "- Item 3\n"
 
+    def test_convert_ordered_list_with_task(self):
+        ordered_list = ast.List(
+            list_type="ordered",
+            children=[
+                ast.ListItem(
+                    order=1,
+                    children=[ast.Text("Item 1")],
+                ),
+                ast.ListItem(
+                    order=2,
+                    children=[ast.Text("Item 2")],
+                ),
+                ast.TaskListItem(
+                    order=3,
+                    checked=False,
+                    children=[ast.Text("Task 1")],
+                ),
+            ],
+        )
+
+        result = ordered_list.convert(self.typst_converter)
+
+        assert result == "\n1. Item 1\n" + "2. Item 2\n" + "3. [ ] Task 1\n"
+
+    def test_convert_unordered_list_with_task(self):
+        ordered_list = ast.List(
+            list_type="unordered",
+            children=[
+                ast.ListItem(
+                    children=[ast.Text("Item 1")],
+                ),
+                ast.ListItem(
+                    children=[ast.Text("Item 2")],
+                ),
+                ast.TaskListItem(
+                    checked=False,
+                    children=[ast.Text("Task 1")],
+                ),
+            ],
+        )
+
+        result = ordered_list.convert(self.typst_converter)
+
+        assert result == "\n- Item 1\n" + "- Item 2\n" + "- [ ] Task 1\n"
+
     def test_convert_nested_list(self):
         nested_list = ast.List(
             list_type="unordered",
@@ -309,6 +354,33 @@ class TestTypstConverter:
         result = list_item.convert(self.typst_converter)
 
         assert result == "\n"
+
+    def test_convert_task_list_item_checked(self):
+        task_list_item = ast.TaskListItem(
+            checked=True,
+            children=[ast.Text("Task")],
+        )
+
+        result = task_list_item.convert(self.typst_converter)
+
+        assert result == "[x] Task\n"
+
+    def test_convert_task_list_item_unchecked(self):
+        task_list_item = ast.TaskListItem(
+            checked=False,
+            children=[ast.Text("Task")],
+        )
+
+        result = task_list_item.convert(self.typst_converter)
+
+        assert result == "[ ] Task\n"
+
+    def test_convert_empty_task_list_item_unchecked(self):
+        task_list_item = ast.TaskListItem(checked=False)
+
+        result = task_list_item.convert(self.typst_converter)
+
+        assert result == "[ ] \n"
 
     def test_convert_code_block(self):
         code_block = ast.CodeBlock(language="python", code="print('Hello World!')")
@@ -556,30 +628,3 @@ class TestTypstConverter:
         result = cell.convert(self.typst_converter)
 
         assert result == "Cell text"
-
-    def test_convert_task_list_item_checked(self):
-        task_list_item = ast.TaskListItem(
-            checked=True,
-            children=[ast.Text("Task")],
-        )
-
-        result = task_list_item.convert(self.typst_converter)
-
-        assert result == "\n[x] Task\n"
-
-    def test_convert_task_list_item_unchecked(self):
-        task_list_item = ast.TaskListItem(
-            checked=False,
-            children=[ast.Text("Task")],
-        )
-
-        result = task_list_item.convert(self.typst_converter)
-
-        assert result == "\n[ ] Task\n"
-
-    def test_convert_empty_task_list_item_unchecked(self):
-        task_list_item = ast.TaskListItem(checked=False)
-
-        result = task_list_item.convert(self.typst_converter)
-
-        assert result == "\n[ ] \n"
