@@ -19,14 +19,14 @@ def list_formats():
     parsers = get_available_parsers()
     converters = get_available_converters()
 
-    return jsonify({"input_parsers": parsers, "output_converters": converters}), 200
+    return jsonify({"inputFormats": parsers, "outputFormats": converters}), 200
 
 
 @app.route("/convert", methods=["POST"])
 def convert():
     data = request.get_json() or {}
-    input_format = data.get("inputFormat").lower()
-    output_format = data.get("outputFormat").lower()
+    input_format = data.get("inputFormat")
+    output_format = data.get("outputFormat")
     content = data.get("content")
 
     error_dict = {}
@@ -40,6 +40,9 @@ def convert():
 
     if len(error_dict) > 0:
         return jsonify(error_dict), 400
+
+    input_format = input_format.lower()
+    output_format = output_format.lower()
 
     parsers = get_available_parsers()
     converters = get_available_converters()
