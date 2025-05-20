@@ -1,4 +1,4 @@
-from markup_document_converter.ast import (
+from markup_document_converter.ast_tree import (
     ASTNode,
     Document,
     Heading,

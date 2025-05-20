@@ -1,6 +1,6 @@
 from markup_document_converter.parsers.base_parser import BaseParser
 from markup_document_converter.registry import register_parser
-import src.markup_document_converter.ast as ast
+import markup_document_converter.ast_tree as ast_tree
 import re
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -127,14 +127,14 @@ class MarkdownParser(BaseParser):
             re.DOTALL,
         )
 
-        self.node_funcs: dict[NodeType, Callable[[PreNode], ast.ASTNode]] = {}
+        self.node_funcs: dict[NodeType, Callable[[PreNode], ast_tree.ASTNode]] = {}
 
         for attr_name in dir(self):
             method = getattr(self, attr_name)
             if callable(method) and hasattr(method, "_node_type"):
                 self.node_funcs[method._node_type] = method
 
-    def to_AST(self, content: str) -> ast.ASTNode:
+    def to_AST(self, content: str) -> ast_tree.ASTNode:
         """
         Parses markdown content and converts it to an AST.
 
@@ -145,7 +145,7 @@ class MarkdownParser(BaseParser):
             ASTNode: Parsed AST document.
         """
         lines = content.splitlines(keepends=True)
-        root = ast.Document()
+        root = ast_tree.Document()
 
         pre_nodes = self._generate_prenodes(lines)
         pre_nodes = self._group_pre_nodes(pre_nodes)
@@ -422,8 +422,8 @@ class MarkdownParser(BaseParser):
         return pre_nodes
 
     def _build_inline_node(
-        self, node_class: type[ast.ASTNode], content: str
-    ) -> ast.ASTNode:
+        self, node_class: type[ast_tree.ASTNode], content: str
+    ) -> ast_tree.ASTNode:
         """
         Helper function to build an inline node and parse its children.
 
@@ -439,7 +439,7 @@ class MarkdownParser(BaseParser):
             node.add_child(child)
         return node
 
-    def _parse_match(self, match: re.Match) -> ast.ASTNode:
+    def _parse_match(self, match: re.Match) -> ast_tree.ASTNode:
         """
         Converts a regex match to the appropriate inline AST node.
 
@@ -453,10 +453,10 @@ class MarkdownParser(BaseParser):
             ValueError: If the match doesn't match known inline formats.
         """
         mapping = {
-            "code": ast.InlineCode,
-            "tilde": ast.Strike,
-            "stars_bold": ast.Bold,
-            "stars_italic": ast.Italic,
+            "code": ast_tree.InlineCode,
+            "tilde": ast_tree.Strike,
+            "stars_bold": ast_tree.Bold,
+            "stars_italic": ast_tree.Italic,
         }
 
         for group_name, node_class in mapping.items():
@@ -471,17 +471,17 @@ class MarkdownParser(BaseParser):
             stars = match.group("stars")
             content = match.group("stars_content")
             if len(stars) % 2 == 0:
-                return self._build_inline_node(ast.Bold, content)
+                return self._build_inline_node(ast_tree.Bold, content)
             else:
-                bold_node = ast.Bold()
-                italic_node = self._build_inline_node(ast.Italic, content)
+                bold_node = ast_tree.Bold()
+                italic_node = self._build_inline_node(ast_tree.Italic, content)
                 bold_node.add_child(italic_node)
                 return bold_node
 
         if match.group("link_text") and match.group("link_url"):
             text = match.group("link_text")
             url = match.group("link_url")
-            link_node = ast.Link(source=url)
+            link_node = ast_tree.Link(source=url)
             for child in self._parse_inline(text):
                 link_node.add_child(child)
             return link_node
@@ -489,11 +489,11 @@ class MarkdownParser(BaseParser):
         if match.group("image_alt") and match.group("image_url"):
             alt = match.group("image_alt")
             src = match.group("image_url")
-            return ast.Image(source=src, alt_text=alt)
+            return ast_tree.Image(source=src, alt_text=alt)
 
         raise ValueError("Unrecognized inline match")
 
-    def _parse_inline(self, text: str) -> List[ast.ASTNode]:
+    def _parse_inline(self, text: str) -> List[ast_tree.ASTNode]:
         """
         Parses a string with potential inline formatting into a list of AST nodes.
 
@@ -504,54 +504,54 @@ class MarkdownParser(BaseParser):
             List[ASTNode]: List of inline-parsed AST nodes.
         """
         if not self.inline_pattern.search(text):
-            return [ast.Text(text)]
+            return [ast_tree.Text(text)]
 
         children = []
         pos = 0
         while pos < len(text):
             match = self.inline_pattern.search(text, pos)
             if not match:
-                children.append(ast.Text(text[pos:]))
+                children.append(ast_tree.Text(text[pos:]))
                 break
             start, end = match.span()
             if start > pos:
-                children.append(ast.Text(text[pos:start]))
+                children.append(ast_tree.Text(text[pos:start]))
             children.append(self._parse_match(match))
             pos = end
 
         return children
 
     @process_prenode(NodeType.LINE_BREAK)
-    def _process_line_break(self, node: PreNode) -> ast.ASTNode:
+    def _process_line_break(self, node: PreNode) -> ast_tree.ASTNode:
         """Converts a line break PreNode to a LineBreak AST node."""
-        return ast.LineBreak()
+        return ast_tree.LineBreak()
 
     @process_prenode(NodeType.HEADING)
-    def _process_heading(self, node: PreNode) -> ast.ASTNode:
+    def _process_heading(self, node: PreNode) -> ast_tree.ASTNode:
         """Parses heading syntax and returns a Heading AST node."""
         heading_level = len(re.findall(r"#+", node.content)[0])
         node.content = node.content.lstrip("# ").rstrip("\n")
 
-        heading = ast.Heading(level=heading_level)
+        heading = ast_tree.Heading(level=heading_level)
         for child in self._parse_inline(node.content):
             heading.add_child(child)
         return heading
 
     @process_prenode(NodeType.UR_LIST_ITEM)
-    def _process_ur_list_item(self, node: PreNode) -> ast.ASTNode:
+    def _process_ur_list_item(self, node: PreNode) -> ast_tree.ASTNode:
         """Parses unordered list item into ListItem AST node."""
         nesting_level = len(node.pre_children[0].content) - len(
             node.pre_children[0].content.lstrip()
         )
         node.pre_children[0].content = node.pre_children[0].content[nesting_level + 2 :]
-        list_item = ast.ListItem()
+        list_item = ast_tree.ListItem()
         for p_node in node.pre_children:
             for child in self._parse_inline(p_node.content):
                 list_item.add_child(child)
         return list_item
 
     @process_prenode(NodeType.OR_LIST_ITEM)
-    def _process_or_list_item(self, node: PreNode) -> ast.ASTNode:
+    def _process_or_list_item(self, node: PreNode) -> ast_tree.ASTNode:
         """Parses ordered list item into ListItem AST node."""
         nesting_level = len(node.pre_children[0].content) - len(
             node.pre_children[0].content.lstrip()
@@ -563,14 +563,14 @@ class MarkdownParser(BaseParser):
         node.pre_children[0].content = node.pre_children[0].content[
             nesting_level + num_len :
         ]
-        list_item = ast.ListItem(order=int(order))
+        list_item = ast_tree.ListItem(order=int(order))
         for p_node in node.pre_children:
             for child in self._parse_inline(p_node.content):
                 list_item.add_child(child)
         return list_item
 
     @process_prenode(NodeType.TASK_LIST_ITEM)
-    def _process_task_list_item(self, node: PreNode) -> ast.ASTNode:
+    def _process_task_list_item(self, node: PreNode) -> ast_tree.ASTNode:
         """Parses task list item into TaskListItem AST node."""
         checked_sign = re.findall(r"\[( |x|X)\]", node.pre_children[0].content)[0]
         checked_sign = not checked_sign.strip() == ""
@@ -581,14 +581,14 @@ class MarkdownParser(BaseParser):
         )
         node.pre_children[0].content = node.pre_children[0].content[sign_len:]
 
-        list_item = ast.TaskListItem(checked=checked_sign)
+        list_item = ast_tree.TaskListItem(checked=checked_sign)
         for p_node in node.pre_children:
             for child in self._parse_inline(p_node.content):
                 list_item.add_child(child)
         return list_item
 
     @process_prenode(NodeType.PARAGRAPH)
-    def _process_paragraph(self, node: PreNode) -> ast.ASTNode:
+    def _process_paragraph(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses a paragraph and returns a Paragraph AST node.
 
@@ -598,18 +598,18 @@ class MarkdownParser(BaseParser):
         Returns:
             Paragraph: A Paragraph AST node with parsed inline children.
         """
-        paragraph_node = ast.Paragraph()
+        paragraph_node = ast_tree.Paragraph()
         for p_node in node.pre_children:
             for inline_child in self._parse_inline(p_node.content):
                 paragraph_node.add_child(inline_child)
         return paragraph_node
 
     @process_prenode(NodeType.BLOCKQOUTE)
-    def _process_blockqoute(self, node: PreNode) -> ast.ASTNode:
+    def _process_blockqoute(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses a blockqoute and returns Blockqoute AST node.
         """
-        blockqoute_node = ast.Blockquote()
+        blockqoute_node = ast_tree.Blockquote()
         for child in node.pre_children:
             if child.node_type == NodeType.BLOCKQOUTE:
                 blockqoute_node.add_child(self._process_blockqoute(child))
@@ -619,18 +619,18 @@ class MarkdownParser(BaseParser):
         return blockqoute_node
 
     @process_prenode(NodeType.CODE_BLOCK)
-    def _process_code_block(self, node: PreNode) -> ast.ASTNode:
+    def _process_code_block(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses a code block and returns CodeBlock AST node.
         """
         language = re.findall(r"```(.*)\n", node.content)[0]
         first_line_len = len(re.findall(r".*\n", node.content)[0])
         code = node.content[first_line_len:]
-        code_block_node = ast.CodeBlock(code=code, language=language)
+        code_block_node = ast_tree.CodeBlock(code=code, language=language)
         return code_block_node
 
     @process_prenode(NodeType.TABLE)
-    def _process_table(self, node: PreNode) -> ast.ASTNode:
+    def _process_table(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses table returns Table AST node.
         """
@@ -641,7 +641,7 @@ class MarkdownParser(BaseParser):
         header = pre_nodes[0]
         border = pre_nodes[1]
         rows = pre_nodes[2:] if len(pre_nodes) > 2 else None
-        table_node = ast.Table()
+        table_node = ast_tree.Table()
 
         border_cols = border.content.strip().split("|")
         cleaned = [s for s in border_cols if len(s) != 0]
@@ -668,30 +668,30 @@ class MarkdownParser(BaseParser):
     @process_prenode(NodeType.TABLE_ROW)
     def _process_table_row(
         self, text: str, is_header: bool, correct_len: int, alignments: list[str]
-    ) -> ast.ASTNode:
+    ) -> ast_tree.ASTNode:
         """
         Parses table row and returns TableRow AST node.
         """
         cols = text.strip().split("|")
         cleaned = [s for s in cols if len(s) != 0]
-        row_node = ast.TableRow(is_header)
+        row_node = ast_tree.TableRow(is_header)
         if len(cleaned) != correct_len:
             raise ValueError("Number of cells in row is incorrect")
         for idx, cl in enumerate(cleaned):
             cl = cl.strip()
-            cell_node = ast.TableCell(alignment=alignments[idx])
+            cell_node = ast_tree.TableCell(alignment=alignments[idx])
             for child in self._parse_inline(cl):
                 cell_node.add_child(child)
             row_node.add_child(cell_node)
         return row_node
 
     @process_prenode(NodeType.HORIZONTAL_RULE)
-    def _process_horizontal_rule(self, node: PreNode) -> ast.ASTNode:
-        return ast.HorizontalRule()
+    def _process_horizontal_rule(self, node: PreNode) -> ast_tree.ASTNode:
+        return ast_tree.HorizontalRule()
 
     @process_prenode(NodeType.LIST)
-    def _process_list(self, node: PreNode) -> ast.ASTNode:
-        list_node = ast.List(list_type="unordered")
+    def _process_list(self, node: PreNode) -> ast_tree.ASTNode:
+        list_node = ast_tree.List(list_type="unordered")
 
         for child in node.pre_children:
             if child.node_type == NodeType.UR_LIST_ITEM:

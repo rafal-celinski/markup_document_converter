@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from markup_document_converter.ast import Document
+from markup_document_converter.ast_tree import Document
 
 
 class BaseParser(ABC):
