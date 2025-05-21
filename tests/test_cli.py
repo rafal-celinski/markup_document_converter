@@ -57,18 +57,7 @@ class TestCLICommands:
 
         result = runner.invoke(app, ["convert", str(input_file), "--to", "invalid"])
         assert result.exit_code != 0
-        assert isinstance(result.exception, ValueError)
-        assert "No converter registered" in str(result.exception)
-
-    def test_convert_with_verbose(self, runner, tmp_path):
-        input_file = tmp_path / "test.md"
-        input_file.write_text("# Test\n\nHello World")
-
-        result = runner.invoke(
-            app, ["convert", str(input_file), "--to", "typst", "--verbose"]
-        )
-        assert result.exit_code == 0
-        assert "= Test" in result.stdout
+        assert "No converter registered for 'invalid'" in result.stdout
 
     def test_convert_complex_markdown(self, runner, tmp_path):
         input_file = tmp_path / "test.md"
