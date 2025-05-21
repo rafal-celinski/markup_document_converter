@@ -1,6 +1,6 @@
 [project]
 name = "markup-document-converter"
-version = "0.2.2"
+version = "0.3.1"
 description = ""
 authors = [
     {name = "Rafał Celiński",email = "dev@rafalcelinski.pl"},
@@ -11,7 +11,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pytest (>=8.3.5,<9.0.0)",
-    "typer[all] (>=0.15.3,<0.16.0)"
+    "typer[all] (>=0.15.3,<0.16.0)",
+    "flask (>=3.1.1,<4.0.0)"
 ]
 
 [tool.poetry]
@@ -19,7 +20,8 @@ packages = [{include = "markup_document_converter", from = "src"}]
 
 [tool.poetry.scripts]
 markdown_example = "tests.converters.markdown_converter_example:main"
-markup_document_converter = "markup_document_converter.cli:app" 
+markup_document_converter = "markup_document_converter.cli:app"
+webapp = "markup_document_converter.webapp:main"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

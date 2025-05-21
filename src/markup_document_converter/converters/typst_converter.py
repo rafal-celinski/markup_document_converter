@@ -1,6 +1,6 @@
 from markup_document_converter.converters.base_converter import BaseConverter
 from markup_document_converter.registry import register_converter
-import markup_document_converter.ast as ast
+import markup_document_converter.ast_tree as ast_tree
 
 
 @register_converter("typst")
@@ -9,25 +9,25 @@ class TypstConverter(BaseConverter):
         chidren_result = "".join([child.convert(self) for child in node.children])
         return f"{left}{chidren_result}{right}"
 
-    def convert_default(self, node: ast.ASTNode) -> str:
+    def convert_default(self, node: ast_tree.ASTNode) -> str:
         return ""
 
-    def convert_document(self, document: ast.Document) -> str:
+    def convert_document(self, document: ast_tree.Document) -> str:
         return self._add_markup("", "\n", document)
 
-    def convert_heading(self, heading: ast.Heading) -> str:
+    def convert_heading(self, heading: ast_tree.Heading) -> str:
         return self._add_markup(f"\n{'=' * heading.level} ", "\n", heading)
 
-    def convert_bold(self, bold: ast.Bold) -> str:
+    def convert_bold(self, bold: ast_tree.Bold) -> str:
         return self._add_markup("*", "*", bold)
 
-    def convert_italic(self, italic: ast.Italic) -> str:
+    def convert_italic(self, italic: ast_tree.Italic) -> str:
         return self._add_markup("_", "_", italic)
 
-    def convert_strike(self, strike: ast.Strike) -> str:
+    def convert_strike(self, strike: ast_tree.Strike) -> str:
         return self._add_markup("#strike[", "]", strike)
 
-    def convert_text(self, text: ast.Text) -> str:
+    def convert_text(self, text: ast_tree.Text) -> str:
         result = text.text
 
         typst_special_chars = [
@@ -63,16 +63,16 @@ class TypstConverter(BaseConverter):
 
         return result
 
-    def convert_paragraph(self, paragraph: ast.Paragraph) -> str:
+    def convert_paragraph(self, paragraph: ast_tree.Paragraph) -> str:
         return self._add_markup("\n", "\n", paragraph)
 
-    def convert_line_break(self, line_break: ast.LineBreak) -> str:
+    def convert_line_break(self, line_break: ast_tree.LineBreak) -> str:
         return "\\ "
 
-    def convert_blockquote(self, blockquote: ast.Blockquote) -> str:
+    def convert_blockquote(self, blockquote: ast_tree.Blockquote) -> str:
         return self._add_markup("#quote[", "]", blockquote)
 
-    def convert_list(self, list_node: ast.List) -> str:
+    def convert_list(self, list_node: ast_tree.List) -> str:
         def add_indent(text: str, indent: str):
             has_trailing_newline = text.endswith("\n")
             if has_trailing_newline:
@@ -103,7 +103,7 @@ class TypstConverter(BaseConverter):
 
         return result
 
-    def convert_list_item(self, list_item: ast.ListItem) -> str:
+    def convert_list_item(self, list_item: ast_tree.ListItem) -> str:
         children_result = "".join([child.convert(self) for child in list_item.children])
 
         if not children_result.endswith("\n"):
@@ -111,22 +111,22 @@ class TypstConverter(BaseConverter):
 
         return children_result
 
-    def convert_task_list_item(self, task_list_item: ast.TaskListItem) -> str:
+    def convert_task_list_item(self, task_list_item: ast_tree.TaskListItem) -> str:
         if task_list_item.checked:
             return self._add_markup("[x] ", "\n", task_list_item)
         else:
             return self._add_markup("[ ] ", "\n", task_list_item)
 
-    def convert_code_block(self, code_block: ast.CodeBlock) -> str:
+    def convert_code_block(self, code_block: ast_tree.CodeBlock) -> str:
         return (
             f"```{code_block.language if code_block.language else ''}\n"
             + f"{code_block.code}\n```"
         )
 
-    def convert_inline_code(self, inline_code: ast.InlineCode) -> str:
+    def convert_inline_code(self, inline_code: ast_tree.InlineCode) -> str:
         return f"```{inline_code.language+' ' if inline_code.language else ''}{inline_code.code}```"
 
-    def convert_image(self, image: ast.Image) -> str:
+    def convert_image(self, image: ast_tree.Image) -> str:
         result = f'#image("{image.source}"'
 
         if image.alt_text:
@@ -135,15 +135,15 @@ class TypstConverter(BaseConverter):
 
         return result
 
-    def convert_link(self, link: ast.Link) -> str:
+    def convert_link(self, link: ast_tree.Link) -> str:
         link_text = "".join([child.convert(self) for child in link.children])
 
         return f'#link("{link.source}")' + (f"[{link_text}]" if link.children else "")
 
-    def convert_horizontal_rule(self, horizontal_rule: ast.HorizontalRule) -> str:
+    def convert_horizontal_rule(self, horizontal_rule: ast_tree.HorizontalRule) -> str:
         return "#line(length: 100%)"
 
-    def convert_table(self, table: ast.Table) -> str:
+    def convert_table(self, table: ast_tree.Table) -> str:
 
         columns = 0
         for row in table.children:
@@ -164,7 +164,7 @@ class TypstConverter(BaseConverter):
 
         return result
 
-    def convert_table_row(self, table_row: ast.TableRow) -> str:
+    def convert_table_row(self, table_row: ast_tree.TableRow) -> str:
         result = ""
         for cell in table_row.children:
             result += f"[{cell.convert(self)}], "
@@ -173,6 +173,6 @@ class TypstConverter(BaseConverter):
             result = f"table.header({result}),"
         return result
 
-    def convert_table_cell(self, table_cell: ast.TableCell) -> str:
+    def convert_table_cell(self, table_cell: ast_tree.TableCell) -> str:
         cell_text = "".join([child.convert(self) for child in table_cell.children])
         return cell_text
