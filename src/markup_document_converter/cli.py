@@ -1,4 +1,3 @@
-# import sys
 from pathlib import Path
 import typer
 from markup_document_converter.core import convert_document
