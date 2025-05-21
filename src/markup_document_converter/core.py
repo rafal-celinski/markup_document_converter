@@ -35,7 +35,7 @@ def convert_document(input_path: str, target_format: str) -> str:
 
 
 def get_content(input_path: str) -> str:
-    with open(input_path, "r") as fp:
+    with open(input_path, "r", encoding="utf-8") as fp:
         content = fp.read()
     if not content.endswith("\n"):
         content += "\n"
