@@ -7,11 +7,11 @@ class TestAPI:
     def _patch_registry(self, monkeypatch):
         monkeypatch.setattr(
             "markup_document_converter.webapp.get_available_parsers",
-            lambda: ["markdown"],
+            lambda: [("markdown", [])],
         )
         monkeypatch.setattr(
             "markup_document_converter.webapp.get_available_converters",
-            lambda: ["typst"],
+            lambda: [("typst", [])],
         )
         monkeypatch.setattr(
             "markup_document_converter.webapp.convert_document",
@@ -67,13 +67,12 @@ class TestAPI:
         assert result.get_json()["content"] == "Missing key"
 
     def test_convert_empty_payload(self, client):
-        payload = {}
-        result = client.post("/api/convert", json=payload)
-
+        result = client.post("/api/convert", json={})
         assert result.status_code == 400
-        assert result.get_json()["inputFormat"] == "Missing key"
-        assert result.get_json()["outputFormat"] == "Missing key"
-        assert result.get_json()["content"] == "Missing key"
+        data = result.get_json()
+        assert data["inputFormat"] == "Missing key"
+        assert data["outputFormat"] == "Missing key"
+        assert data["content"] == "Missing key"
 
     def test_convert_unsupported_input_format(self, client):
         payload = {
@@ -106,8 +105,9 @@ class TestAPI:
         result = client.post("/api/convert", json=payload)
 
         assert result.status_code == 400
-        assert result.get_json()["inputFormat"] == "Unsupported format"
-        assert result.get_json()["outputFormat"] == "Unsupported format"
+        data = result.get_json()
+        assert data["inputFormat"] == "Unsupported format"
+        assert data["outputFormat"] == "Unsupported format"
 
 
 class TestApp:
@@ -115,11 +115,11 @@ class TestApp:
     def _patch_registry(self, monkeypatch):
         monkeypatch.setattr(
             "markup_document_converter.webapp.get_available_parsers",
-            lambda: ["markdown"],
+            lambda: [("markdown", [])],
         )
         monkeypatch.setattr(
             "markup_document_converter.webapp.get_available_converters",
-            lambda: ["typst"],
+            lambda: [("typst", [])],
         )
         monkeypatch.setattr(
             "markup_document_converter.webapp.convert_document",

@@ -1,46 +1,56 @@
-from typing import Type, Callable
 import pkgutil
 import importlib
+from types import ModuleType
+from typing import Callable
+
 from markup_document_converter.parsers.base_parser import BaseParser
 from markup_document_converter.converters.base_converter import BaseConverter
 from markup_document_converter import parsers, converters
 
-_parsers: dict[str, type[BaseParser]] = {}
-_converters: dict[str, type[BaseConverter]] = {}
+_name_to_parser: dict[str, type[BaseParser]] = {}
+_parser_to_names: dict[type[BaseParser], list[str]] = {}
+
+_name_to_converter: dict[str, type[BaseConverter]] = {}
+_converter_to_names: dict[type[BaseConverter], list[str]] = {}
 
 
-def register_parser(name: str) -> Callable[[Type[BaseParser]], Type[BaseParser]]:
+def register_parser(*names: str) -> Callable[[type[BaseParser]], type[BaseParser]]:
     """
-    Class decorator to register a parser under `name`.
-
+    Class decorator to register a parser under a primary name plus aliases.
     Usage:
-
-        @register_parser("md")
-        @register_parser("markdown")
+        @register_parser("markdown", "md", "mkd")
         class MarkdownParser(BaseParser): ...
     """
 
-    def decorator(cls: Type[BaseParser]) -> Type[BaseParser]:
-        _parsers[name.lower()] = cls
+    def decorator(cls: type[BaseParser]) -> type[BaseParser]:
+        for name in names:
+            key = name.lower()
+            _name_to_parser[key] = cls
+            _parser_to_names.setdefault(cls, [])
+            if key not in _parser_to_names[cls]:
+                _parser_to_names[cls].append(key)
         return cls
 
     return decorator
 
 
 def register_converter(
-    name: str,
-) -> Callable[[Type[BaseConverter]], Type[BaseConverter]]:
+    *names: str,
+) -> Callable[[type[BaseConverter]], type[BaseConverter]]:
     """
-    Class decorator to register a converter under `name`.
-
+    Class decorator to register a converter under a primary name plus aliases.
     Usage:
-
-        @register_converter("typst")
-        class TypstConverter(BaseConverter): ...
+        @register_converter("latex", "tex")
+        class LatexConverter(BaseConverter): ...
     """
 
-    def decorator(cls: Type[BaseConverter]) -> Type[BaseConverter]:
-        _converters[name.lower()] = cls
+    def decorator(cls: type[BaseConverter]) -> type[BaseConverter]:
+        for name in names:
+            key = name.lower()
+            _name_to_converter[key] = cls
+            _converter_to_names.setdefault(cls, [])
+            if key not in _converter_to_names[cls]:
+                _converter_to_names[cls].append(key)
         return cls
 
     return decorator
@@ -48,65 +58,64 @@ def register_converter(
 
 def get_parser(name: str) -> BaseParser:
     """
-    Look up and instantiate a parser by name.
-
-    Args:
-        name (str): Name of the parser to retrieve.
-
-    Returns:
-        BaseParser: An instance of the requested parser.
-
-    Raises:
-        ValueError: If no parser is registered under `name`.
+    Instantiate a parser by any of its registered names.
     """
     key = name.lower()
-    if key not in _parsers:
+    try:
+        return _name_to_parser[key]()
+    except KeyError:
         raise ValueError(f"No parser registered for '{name}'")
-    return _parsers[key]()
 
 
 def get_converter(name: str) -> BaseConverter:
     """
-    Look up and instantiate a converter by name.
-
-    Args:
-        name (str): Name of the converter to retrieve.
-
-    Returns:
-        BaseConverter: An instance of the requested converter.
-
-    Raises:
-        ValueError: If no converter is registered under `name`.
+    Instantiate a converter by any of its registered names.
     """
     key = name.lower()
-    if key not in _converters:
+    try:
+        return _name_to_converter[key]()
+    except KeyError:
         raise ValueError(f"No converter registered for '{name}'")
-    return _converters[key]()
 
 
-def get_available_parsers() -> list[str]:
+def get_available_parsers() -> list[tuple[str, list[str]]]:
     """
-    List all registered parser names.
-
-    Returns:
-        List[str]: Sorted list of parser keys.
+    Returns a list of (primary_name, [alias1, alias2, ...]) tuples,
+    sorted by primary_name.
     """
-    return sorted(_parsers.keys())
+    out: list[tuple[str, list[str]]] = []
+    for cls, names in _parser_to_names.items():
+        primary = names[0]
+        aliases = names[1:]
+        out.append((primary, aliases))
+    return sorted(out, key=lambda x: x[0])
 
 
-def get_available_converters() -> list[str]:
+def get_available_converters() -> list[tuple[str, list[str]]]:
     """
-    List all registered converter names.
-
-    Returns:
-        List[str]: Sorted list of converter keys.
+    Returns a list of (primary_name, [alias1, alias2, ...]) tuples,
+    sorted by primary_name.
     """
-    return sorted(_converters.keys())
+    out: list[tuple[str, list[str]]] = []
+    for cls, names in _converter_to_names.items():
+        primary = names[0]
+        aliases = names[1:]
+        out.append((primary, aliases))
+    return sorted(out, key=lambda x: x[0])
 
 
-def _auto_import(pkg) -> None:
+def _auto_import(pkg: ModuleType) -> None:
+    """
+    Dynamically import all submodules in the given package so
+    that @register_* decorators actually run.
+    """
     for finder, name, is_pkg in pkgutil.iter_modules(pkg.__path__):
-        importlib.import_module(f"{pkg.__name__}.{name}")
+        if name.startswith("_"):
+            continue
+        full = f"{pkg.__name__}.{name}"
+        module = importlib.import_module(full)
+        if is_pkg:
+            _auto_import(module)
 
 
 _auto_import(parsers)
