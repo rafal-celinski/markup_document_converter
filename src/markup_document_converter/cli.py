@@ -61,37 +61,41 @@ def convert(
         dir_okay=False,
         help="Where to write the result. If omitted, writes to stdout.",
     ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose logging of parsing and conversion steps.",
-    ),
 ) -> None:
     """
     Read INPUT, parse it to the universal AST, then render as the chosen TARGET format.
     """
-    content = input.read_text(encoding="utf-8")
-    if not content.endswith("\n"):
-        content += "\n"
+    try:
+        content = input.read_text(encoding="utf-8")
+        if not content.endswith("\n"):
+            content += "\n"
 
-    _, ext = input.suffix.lstrip(".").lower(), None
-    source_format = input.suffix.lstrip(".").lower()
+        _, ext = input.suffix.lstrip(".").lower(), None
+        source_format = input.suffix.lstrip(".").lower()
 
-    result = convert_document(
-        content=content,
-        source_format=source_format,
-        target_format=to.lower(),
-    )
+        result = convert_document(
+            content=content,
+            source_format=source_format,
+            target_format=to.lower(),
+        )
 
-    if output:
-        output.write_text(result, encoding="utf-8")
-    else:
-        typer.echo(result)
+        if output:
+            output.write_text(result, encoding="utf-8")
+        else:
+            typer.echo(result)
+
+    except ValueError as e:
+        typer.secho(f"Error: {e}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    except Exception as e:
+        typer.secho(f"Unexpected error: {e}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1)
 
 
 @app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(None, "--version", help="Show version and exit."),
 ) -> None:
     """
@@ -101,6 +105,10 @@ def main(
         from markup_document_converter import __version__
 
         typer.echo(f"markup_document_converter version {__version__}")
+        raise typer.Exit()
+
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
         raise typer.Exit()
 
 
