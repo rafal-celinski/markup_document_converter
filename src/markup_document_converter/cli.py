@@ -70,7 +70,6 @@ def convert(
         if not content.endswith("\n"):
             content += "\n"
 
-        _, ext = input.suffix.lstrip(".").lower(), None
         source_format = input.suffix.lstrip(".").lower()
 
         result = convert_document(
