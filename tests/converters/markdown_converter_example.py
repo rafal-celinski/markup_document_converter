@@ -1,7 +1,7 @@
 from src.markup_document_converter.parsers.markdown_parser import (
     MarkdownParser,
 )
-from src.markup_document_converter.core import get_content
+from src.markup_document_converter.cli import get_content
 
 
 def print_ast(node, indent=0):

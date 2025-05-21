@@ -1,4 +1,4 @@
-import markup_document_converter.ast as ast
+import markup_document_converter.ast_tree as ast_tree
 from markup_document_converter.converters.typst_converter import TypstConverter
 import pytest  # type: ignore
 
@@ -14,16 +14,16 @@ class TestTypstConverter:
         pass
 
     def test_convert_document(self):
-        document = ast.Document(
+        document = ast_tree.Document(
             children=[
-                ast.Heading(
+                ast_tree.Heading(
                     level=1,
-                    children=[ast.Text("Heading 1")],
+                    children=[ast_tree.Text("Heading 1")],
                 ),
-                ast.Text("Text "),
-                ast.Bold(
+                ast_tree.Text("Text "),
+                ast_tree.Bold(
                     children=[
-                        ast.Text("Bold text"),
+                        ast_tree.Text("Bold text"),
                     ]
                 ),
             ]
@@ -34,7 +34,7 @@ class TestTypstConverter:
         assert result == "\n" "= Heading 1\n" "Text *Bold text*\n"
 
     def test_empty_document(self):
-        document = ast.Document([])
+        document = ast_tree.Document([])
         result = document.convert(self.typst_converter)
         assert result == "\n"
 
@@ -50,9 +50,9 @@ class TestTypstConverter:
         ],
     )
     def test_convert_heading(self, level, expected):
-        heading = ast.Heading(
+        heading = ast_tree.Heading(
             level=level,
-            children=[ast.Text("Heading")],
+            children=[ast_tree.Text("Heading")],
         )
 
         result = heading.convert(self.typst_converter)
@@ -60,113 +60,113 @@ class TestTypstConverter:
         assert result == expected
 
     def test_empty_heading(self):
-        heading = ast.Heading(level=1)
+        heading = ast_tree.Heading(level=1)
 
         result = heading.convert(self.typst_converter)
 
         assert result == "\n= \n"
 
     def test_convert_bold(self):
-        bold = ast.Bold(children=[ast.Text("Bold text")])
+        bold = ast_tree.Bold(children=[ast_tree.Text("Bold text")])
 
         result = bold.convert(self.typst_converter)
 
         assert result == "*Bold text*"
 
     def test_bold_empty(self):
-        bold = ast.Bold([])
+        bold = ast_tree.Bold([])
         result = bold.convert(self.typst_converter)
         assert result == "**"
 
     def test_convert_italic(self):
-        italic = ast.Italic(children=[ast.Text("Italic text")])
+        italic = ast_tree.Italic(children=[ast_tree.Text("Italic text")])
 
         result = italic.convert(self.typst_converter)
 
         assert result == "_Italic text_"
 
     def test_empty_italic(self):
-        italic = ast.Italic()
+        italic = ast_tree.Italic()
 
         result = italic.convert(self.typst_converter)
 
         assert result == "__"
 
     def test_convert_strike(self):
-        strike = ast.Strike(children=[ast.Text("Strike text")])
+        strike = ast_tree.Strike(children=[ast_tree.Text("Strike text")])
 
         result = strike.convert(self.typst_converter)
 
         assert result == "#strike[Strike text]"
 
     def test_empty_strike(self):
-        strike = ast.Strike()
+        strike = ast_tree.Strike()
 
         result = strike.convert(self.typst_converter)
 
         assert result == "#strike[]"
 
     def test_convert_text(self):
-        text = ast.Text("Text")
+        text = ast_tree.Text("Text")
 
         result = text.convert(self.typst_converter)
 
         assert result == "Text"
 
     def test_convert_text_with_special_chars(self):
-        text = ast.Text("*#[]+-/$=\\<>@'\"`")
+        text = ast_tree.Text("*#[]+-/$=\\<>@'\"`")
 
         result = text.convert(self.typst_converter)
 
         assert result == "\\*\\#\\[\\]\\+\\-\\/\\$\\=\\\\\\<\\>\\@\\'\\\"\\`"
 
     def test_convert_text_with_unusual_special_chars(self):
-        text = ast.Text("_ | _| _ |_")
+        text = ast_tree.Text("_ | _| _ |_")
 
         result = text.convert(self.typst_converter)
 
         assert result == "\\_ | \\_| \\_ |_"
 
     def test_convert_paragraph(self):
-        paragraph = ast.Paragraph(children=[ast.Text("Paragraph")])
+        paragraph = ast_tree.Paragraph(children=[ast_tree.Text("Paragraph")])
 
         result = paragraph.convert(self.typst_converter)
 
         assert result == "\nParagraph\n"
 
     def test_empty_paragraph(self):
-        paragraph = ast.Paragraph()
+        paragraph = ast_tree.Paragraph()
 
         result = paragraph.convert(self.typst_converter)
 
         assert result == "\n\n"
 
     def test_convert_line_break(self):
-        line_break = ast.LineBreak()
+        line_break = ast_tree.LineBreak()
 
         result = line_break.convert(self.typst_converter)
 
         assert result == "\\ "
 
     def test_convert_blockquote(self):
-        blockquote = ast.Blockquote(children=[ast.Text("Blockquote")])
+        blockquote = ast_tree.Blockquote(children=[ast_tree.Text("Blockquote")])
 
         result = blockquote.convert(self.typst_converter)
 
         assert result == "#quote[Blockquote]"
 
     def test_empty_blockquote(self):
-        blockquote = ast.Blockquote()
+        blockquote = ast_tree.Blockquote()
 
         result = blockquote.convert(self.typst_converter)
 
         assert result == "#quote[]"
 
     def test_nested_blockquote(self):
-        blockquote = ast.Blockquote(
+        blockquote = ast_tree.Blockquote(
             children=[
-                ast.Text("Blockquote "),
-                ast.Blockquote(children=[ast.Text("Nested Blockquote")]),
+                ast_tree.Text("Blockquote "),
+                ast_tree.Blockquote(children=[ast_tree.Text("Nested Blockquote")]),
             ]
         )
 
@@ -175,20 +175,20 @@ class TestTypstConverter:
         assert result == "#quote[Blockquote #quote[Nested Blockquote]]"
 
     def test_convert_ordered_list(self):
-        ordered_list = ast.List(
+        ordered_list = ast_tree.List(
             list_type="ordered",
             children=[
-                ast.ListItem(
+                ast_tree.ListItem(
                     order=1,
-                    children=[ast.Text("Item 1")],
+                    children=[ast_tree.Text("Item 1")],
                 ),
-                ast.ListItem(
+                ast_tree.ListItem(
                     order=2,
-                    children=[ast.Text("Item 2")],
+                    children=[ast_tree.Text("Item 2")],
                 ),
-                ast.ListItem(
+                ast_tree.ListItem(
                     order=3,
-                    children=[ast.Text("Item 3")],
+                    children=[ast_tree.Text("Item 3")],
                 ),
             ],
         )
@@ -198,12 +198,12 @@ class TestTypstConverter:
         assert result == "\n1. Item 1\n" + "2. Item 2\n" + "3. Item 3\n"
 
     def test_convert_autoordered_list(self):
-        ordered_list = ast.List(
+        ordered_list = ast_tree.List(
             list_type="ordered",
             children=[
-                ast.ListItem(children=[ast.Text("Item 1")]),
-                ast.ListItem(children=[ast.Text("Item 2")]),
-                ast.ListItem(children=[ast.Text("Item 3")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 1")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 2")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 3")]),
             ],
         )
 
@@ -212,12 +212,12 @@ class TestTypstConverter:
         assert result == "\n+ Item 1\n" + "+ Item 2\n" + "+ Item 3\n"
 
     def test_convert_unordered_list(self):
-        unordered_list = ast.List(
+        unordered_list = ast_tree.List(
             list_type="unordered",
             children=[
-                ast.ListItem(children=[ast.Text("Item 1")]),
-                ast.ListItem(children=[ast.Text("Item 2")]),
-                ast.ListItem(children=[ast.Text("Item 3")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 1")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 2")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 3")]),
             ],
         )
 
@@ -226,21 +226,21 @@ class TestTypstConverter:
         assert result == "\n- Item 1\n" + "- Item 2\n" + "- Item 3\n"
 
     def test_convert_ordered_list_with_task(self):
-        ordered_list = ast.List(
+        ordered_list = ast_tree.List(
             list_type="ordered",
             children=[
-                ast.ListItem(
+                ast_tree.ListItem(
                     order=1,
-                    children=[ast.Text("Item 1")],
+                    children=[ast_tree.Text("Item 1")],
                 ),
-                ast.ListItem(
+                ast_tree.ListItem(
                     order=2,
-                    children=[ast.Text("Item 2")],
+                    children=[ast_tree.Text("Item 2")],
                 ),
-                ast.TaskListItem(
+                ast_tree.TaskListItem(
                     order=3,
                     checked=False,
-                    children=[ast.Text("Task 1")],
+                    children=[ast_tree.Text("Task 1")],
                 ),
             ],
         )
@@ -250,18 +250,18 @@ class TestTypstConverter:
         assert result == "\n1. Item 1\n" + "2. Item 2\n" + "3. [ ] Task 1\n"
 
     def test_convert_unordered_list_with_task(self):
-        ordered_list = ast.List(
+        ordered_list = ast_tree.List(
             list_type="unordered",
             children=[
-                ast.ListItem(
-                    children=[ast.Text("Item 1")],
+                ast_tree.ListItem(
+                    children=[ast_tree.Text("Item 1")],
                 ),
-                ast.ListItem(
-                    children=[ast.Text("Item 2")],
+                ast_tree.ListItem(
+                    children=[ast_tree.Text("Item 2")],
                 ),
-                ast.TaskListItem(
+                ast_tree.TaskListItem(
                     checked=False,
-                    children=[ast.Text("Task 1")],
+                    children=[ast_tree.Text("Task 1")],
                 ),
             ],
         )
@@ -271,27 +271,27 @@ class TestTypstConverter:
         assert result == "\n- Item 1\n" + "- Item 2\n" + "- [ ] Task 1\n"
 
     def test_convert_nested_list(self):
-        nested_list = ast.List(
+        nested_list = ast_tree.List(
             list_type="unordered",
             children=[
-                ast.ListItem(children=[ast.Text("Item 1")]),
-                ast.ListItem(children=[ast.Text("Item 2")]),
-                ast.ListItem(children=[ast.Text("Item 3")]),
-                ast.ListItem(
+                ast_tree.ListItem(children=[ast_tree.Text("Item 1")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 2")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 3")]),
+                ast_tree.ListItem(
                     children=[
-                        ast.Text("Item 4"),
-                        ast.List(
+                        ast_tree.Text("Item 4"),
+                        ast_tree.List(
                             list_type="unordered",
                             children=[
-                                ast.ListItem(children=[ast.Text("Item 4a")]),
-                                ast.ListItem(children=[ast.Text("Item 4b")]),
-                                ast.ListItem(children=[ast.Text("Item 4c")]),
+                                ast_tree.ListItem(children=[ast_tree.Text("Item 4a")]),
+                                ast_tree.ListItem(children=[ast_tree.Text("Item 4b")]),
+                                ast_tree.ListItem(children=[ast_tree.Text("Item 4c")]),
                             ],
                         ),
-                        ast.Text("some additional text"),
+                        ast_tree.Text("some additional text"),
                     ]
                 ),
-                ast.ListItem(children=[ast.Text("Item 5")]),
+                ast_tree.ListItem(children=[ast_tree.Text("Item 5")]),
             ],
         )
 
@@ -311,22 +311,25 @@ class TestTypstConverter:
         )
 
     def test_empty_list(self):
-        ordered_list = ast.List("ordered")
+        ordered_list = ast_tree.List("ordered")
 
         result = ordered_list.convert(self.typst_converter)
 
         assert result == "\n"
 
     def test_convert_list_item_single_text(self):
-        list_item = ast.ListItem(children=[ast.Text("Item")])
+        list_item = ast_tree.ListItem(children=[ast_tree.Text("Item")])
 
         result = list_item.convert(self.typst_converter)
 
         assert result == "Item\n"
 
     def test_convert_list_item_multiple_text(self):
-        list_item = ast.ListItem(
-            children=[ast.Bold(children=[ast.Text("Bold")]), ast.Text(" Item")]
+        list_item = ast_tree.ListItem(
+            children=[
+                ast_tree.Bold(children=[ast_tree.Text("Bold")]),
+                ast_tree.Text(" Item"),
+            ]
         )
 
         result = list_item.convert(self.typst_converter)
@@ -334,12 +337,14 @@ class TestTypstConverter:
         assert result == "*Bold* Item\n"
 
     def test_convert_list_item_indent_list(self):
-        list_item = ast.ListItem(
+        list_item = ast_tree.ListItem(
             children=[
-                ast.Text("Item"),
-                ast.List(
+                ast_tree.Text("Item"),
+                ast_tree.List(
                     list_type="unordered",
-                    children=[ast.ListItem(children=[ast.Text("Indent item")])],
+                    children=[
+                        ast_tree.ListItem(children=[ast_tree.Text("Indent item")])
+                    ],
                 ),
             ]
         )
@@ -349,16 +354,16 @@ class TestTypstConverter:
         assert result == "Item\n" + "- Indent item\n"
 
     def test_convert_empty_list_item(self):
-        list_item = ast.ListItem()
+        list_item = ast_tree.ListItem()
 
         result = list_item.convert(self.typst_converter)
 
         assert result == "\n"
 
     def test_convert_task_list_item_checked(self):
-        task_list_item = ast.TaskListItem(
+        task_list_item = ast_tree.TaskListItem(
             checked=True,
-            children=[ast.Text("Task")],
+            children=[ast_tree.Text("Task")],
         )
 
         result = task_list_item.convert(self.typst_converter)
@@ -366,9 +371,9 @@ class TestTypstConverter:
         assert result == "[x] Task\n"
 
     def test_convert_task_list_item_unchecked(self):
-        task_list_item = ast.TaskListItem(
+        task_list_item = ast_tree.TaskListItem(
             checked=False,
-            children=[ast.Text("Task")],
+            children=[ast_tree.Text("Task")],
         )
 
         result = task_list_item.convert(self.typst_converter)
@@ -376,58 +381,60 @@ class TestTypstConverter:
         assert result == "[ ] Task\n"
 
     def test_convert_empty_task_list_item_unchecked(self):
-        task_list_item = ast.TaskListItem(checked=False)
+        task_list_item = ast_tree.TaskListItem(checked=False)
 
         result = task_list_item.convert(self.typst_converter)
 
         assert result == "[ ] \n"
 
     def test_convert_code_block(self):
-        code_block = ast.CodeBlock(language="python", code="print('Hello World!')")
+        code_block = ast_tree.CodeBlock(language="python", code="print('Hello World!')")
 
         result = code_block.convert(self.typst_converter)
 
         assert result == "```python\nprint('Hello World!')\n```"
 
     def test_code_block_without_language(self):
-        code_block = ast.CodeBlock(code="print('Hello World!')")
+        code_block = ast_tree.CodeBlock(code="print('Hello World!')")
 
         result = code_block.convert(self.typst_converter)
 
         assert result == "```\nprint('Hello World!')\n```"
 
     def test_convert_inline_code(self):
-        inline_code = ast.InlineCode(language="python", code="print('Hello World!')")
+        inline_code = ast_tree.InlineCode(
+            language="python", code="print('Hello World!')"
+        )
 
         result = inline_code.convert(self.typst_converter)
 
         assert result == "```python print('Hello World!')```"
 
     def test_convert_inline_code_without_language(self):
-        inline_code = ast.InlineCode(code="print('Hello World!')")
+        inline_code = ast_tree.InlineCode(code="print('Hello World!')")
 
         result = inline_code.convert(self.typst_converter)
 
         assert result == "```print('Hello World!')```"
 
     def test_convert_image(self):
-        image = ast.Image(source="image.png", alt_text="example image")
+        image = ast_tree.Image(source="image.png", alt_text="example image")
 
         result = image.convert(self.typst_converter)
 
         assert result == '#image("image.png", alt: "example image")'
 
     def test_convert_image_without_alt(self):
-        image = ast.Image(source="image.png")
+        image = ast_tree.Image(source="image.png")
 
         result = image.convert(self.typst_converter)
 
         assert result == '#image("image.png")'
 
     def test_convert_link_with_text(self):
-        link = ast.Link(
+        link = ast_tree.Link(
             source="example.com",
-            children=[ast.Text("Link text")],
+            children=[ast_tree.Text("Link text")],
         )
 
         result = link.convert(self.typst_converter)
@@ -435,21 +442,21 @@ class TestTypstConverter:
         assert result == '#link("example.com")[Link text]'
 
     def test_convert_link_with_formated_text(self):
-        link = ast.Link(
+        link = ast_tree.Link(
             source="example.com",
             children=[
-                ast.Bold(
+                ast_tree.Bold(
                     children=[
-                        ast.Text("Bold"),
+                        ast_tree.Text("Bold"),
                     ]
                 ),
-                ast.Text(", "),
-                ast.Italic(
+                ast_tree.Text(", "),
+                ast_tree.Italic(
                     children=[
-                        ast.Text("Italic"),
+                        ast_tree.Text("Italic"),
                     ]
                 ),
-                ast.Text(" link text"),
+                ast_tree.Text(" link text"),
             ],
         )
 
@@ -458,44 +465,44 @@ class TestTypstConverter:
         assert result == '#link("example.com")[*Bold*, _Italic_ link text]'
 
     def test_convert_link_without_text(self):
-        link = ast.Link(source="example.com")
+        link = ast_tree.Link(source="example.com")
 
         result = link.convert(self.typst_converter)
 
         assert result == '#link("example.com")'
 
     def test_convert_horizontal_rule(self):
-        hr = ast.HorizontalRule()
+        hr = ast_tree.HorizontalRule()
 
         result = hr.convert(self.typst_converter)
 
         assert result == "#line(length: 100%)"
 
     def test_convert_table_with_header(self):
-        table = ast.Table(
+        table = ast_tree.Table(
             children=[
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=True,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_00")]),
-                        ast.TableCell(children=[ast.Text("cell_01")]),
-                        ast.TableCell(children=[ast.Text("cell_02")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_00")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_01")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_02")]),
                     ],
                 ),
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_10")]),
-                        ast.TableCell(children=[ast.Text("cell_11")]),
-                        ast.TableCell(children=[ast.Text("cell_12")]),
-                        ast.TableCell(children=[ast.Text("cell_13")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_10")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_11")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_12")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_13")]),
                     ],
                 ),
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_20")]),
-                        ast.TableCell(children=[ast.Text("cell_21")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_20")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_21")]),
                     ],
                 ),
             ]
@@ -514,30 +521,30 @@ class TestTypstConverter:
         )
 
     def test_convert_table_without_header(self):
-        table = ast.Table(
+        table = ast_tree.Table(
             children=[
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_00")]),
-                        ast.TableCell(children=[ast.Text("cell_01")]),
-                        ast.TableCell(children=[ast.Text("cell_02")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_00")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_01")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_02")]),
                     ],
                 ),
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_10")]),
-                        ast.TableCell(children=[ast.Text("cell_11")]),
-                        ast.TableCell(children=[ast.Text("cell_12")]),
-                        ast.TableCell(children=[ast.Text("cell_13")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_10")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_11")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_12")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_13")]),
                     ],
                 ),
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_20")]),
-                        ast.TableCell(children=[ast.Text("cell_21")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_20")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_21")]),
                     ],
                 ),
             ]
@@ -556,29 +563,29 @@ class TestTypstConverter:
         )
 
     def test_convert_empty_table(self):
-        table = ast.Table()
+        table = ast_tree.Table()
 
         result = table.convert(self.typst_converter)
 
         assert result == "\n#table(\n" + "\tcolumns: 0,\n" + ")\n"
 
     def test_convert_table_empty_row(self):
-        table = ast.Table(
+        table = ast_tree.Table(
             children=[
-                ast.TableRow(
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_00")]),
-                        ast.TableCell(children=[ast.Text("cell_01")]),
-                        ast.TableCell(children=[ast.Text("cell_02")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_00")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_01")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_02")]),
                     ],
                 ),
-                ast.TableRow(is_header=False),
-                ast.TableRow(
+                ast_tree.TableRow(is_header=False),
+                ast_tree.TableRow(
                     is_header=False,
                     children=[
-                        ast.TableCell(children=[ast.Text("cell_20")]),
-                        ast.TableCell(children=[ast.Text("cell_21")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_20")]),
+                        ast_tree.TableCell(children=[ast_tree.Text("cell_21")]),
                     ],
                 ),
             ]
@@ -597,11 +604,11 @@ class TestTypstConverter:
         )
 
     def test_convert_table_row(self):
-        row = ast.TableRow(
+        row = ast_tree.TableRow(
             is_header=False,
             children=[
-                ast.TableCell(children=[ast.Text("cell_0")]),
-                ast.TableCell(children=[ast.Text("cell_1")]),
+                ast_tree.TableCell(children=[ast_tree.Text("cell_0")]),
+                ast_tree.TableCell(children=[ast_tree.Text("cell_1")]),
             ],
         )
 
@@ -610,11 +617,11 @@ class TestTypstConverter:
         assert result == "[cell_0], [cell_1], "
 
     def test_convert_table_row_header(self):
-        row = ast.TableRow(
+        row = ast_tree.TableRow(
             is_header=True,
             children=[
-                ast.TableCell(children=[ast.Text("cell_0")]),
-                ast.TableCell(children=[ast.Text("cell_1")]),
+                ast_tree.TableCell(children=[ast_tree.Text("cell_0")]),
+                ast_tree.TableCell(children=[ast_tree.Text("cell_1")]),
             ],
         )
 
@@ -623,7 +630,7 @@ class TestTypstConverter:
         assert result == "table.header([cell_0], [cell_1], ),"
 
     def test_convert_table_cell(self):
-        cell = ast.TableCell(children=[ast.Text("Cell text")])
+        cell = ast_tree.TableCell(children=[ast_tree.Text("Cell text")])
 
         result = cell.convert(self.typst_converter)
 
