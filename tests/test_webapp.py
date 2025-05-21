@@ -108,3 +108,55 @@ class TestAPI:
         assert result.status_code == 400
         assert result.get_json()["inputFormat"] == "Unsupported format"
         assert result.get_json()["outputFormat"] == "Unsupported format"
+
+
+class TestApp:
+    @pytest.fixture(autouse=True)
+    def _patch_registry(self, monkeypatch):
+        monkeypatch.setattr(
+            "markup_document_converter.webapp.get_available_parsers",
+            lambda: ["markdown"],
+        )
+        monkeypatch.setattr(
+            "markup_document_converter.webapp.get_available_converters",
+            lambda: ["typst"],
+        )
+        monkeypatch.setattr(
+            "markup_document_converter.webapp.convert_document",
+            lambda content, input_format, output_format: f"converted:{content}",
+        )
+
+    @pytest.fixture
+    def client(self):
+        flask_app.config["TESTING"] = True
+        with flask_app.test_client() as client:
+            yield client
+
+    def test_input_formats(self, client):
+        response = client.get("/")
+
+        assert response.status_code == 200
+
+        assert b"<select" in response.data
+        assert b'name="inputFormats"' in response.data
+        assert b'<option value="markdown">markdown</option>' in response.data
+
+    def test_output_formats(self, client):
+        response = client.get("/")
+
+        assert response.status_code == 200
+
+        assert b"<select" in response.data
+        assert b'name="outputFormats"' in response.data
+        assert b'<option value="typst">typst</option>' in response.data
+
+    def test_convert_success(self, client):
+        payload = {
+            "inputFormats": "markdown",
+            "outputFormats": "typst",
+            "sourceTextArea": "content",
+        }
+        response = client.post("/", data=payload)
+
+        assert response.status_code == 200
+        assert b"converted:content" in response.data
