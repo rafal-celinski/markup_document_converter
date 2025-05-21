@@ -1,19 +1,39 @@
-# import sys
 from pathlib import Path
+
 import typer
-from markup_document_converter.core import convert_document
+
 from markup_document_converter.registry import (
     get_available_parsers,
     get_available_converters,
 )
-import os
-
+from markup_document_converter.core import convert_document
 
 app = typer.Typer(
     name="markup_document_converter",
     help="Convert Markdown into Typst or LaTeX via a universal AST.",
     add_completion=False,
 )
+
+
+@app.command("list-formats")
+def list_formats() -> None:
+    """
+    Show all supported input parsers and output converters,
+    listing each primary name with its aliases.
+    """
+    typer.echo("Input parsers:")
+    for primary, aliases in get_available_parsers():
+        if aliases:
+            typer.echo(f"  • {primary} (aliases: {', '.join(aliases)})")
+        else:
+            typer.echo(f"  • {primary}")
+
+    typer.echo("\nOutput converters:")
+    for primary, aliases in get_available_converters():
+        if aliases:
+            typer.echo(f"  • {primary} (aliases: {', '.join(aliases)})")
+        else:
+            typer.echo(f"  • {primary}")
 
 
 @app.command("convert")
@@ -30,7 +50,8 @@ def convert(
         ...,
         "--to",
         "-t",
-        help="Target format. Choose from: " + ", ".join(get_available_converters()),
+        help="Target format. Choose from: "
+        + ", ".join(name for name, _ in get_available_converters()),
     ),
     output: Path = typer.Option(
         None,
@@ -46,19 +67,16 @@ def convert(
         "-v",
         help="Enable verbose logging of parsing and conversion steps.",
     ),
-):
+) -> None:
     """
     Read INPUT, parse it to the universal AST, then render as the chosen TARGET format.
     """
+    content = input.read_text(encoding="utf-8")
+    if not content.endswith("\n"):
+        content += "\n"
 
-    input_path = str(input)
-    if not os.path.isfile(input_path):
-        raise FileNotFoundError(f"Input file not found: {input_path}")
-
-    content = get_content(input_path)
-
-    _, ext = os.path.splitext(input_path)
-    source_format = ext.lstrip(".").lower()
+    _, ext = input.suffix.lstrip(".").lower(), None
+    source_format = input.suffix.lstrip(".").lower()
 
     result = convert_document(
         content=content,
@@ -72,24 +90,10 @@ def convert(
         typer.echo(result)
 
 
-@app.command("list-formats")
-def list_formats():
-    """
-    Show all supported input parsers and output converters.
-    """
-    typer.echo("Input parsers:")
-    for p in get_available_parsers():
-        typer.echo(f"  • {p}")
-
-    typer.echo("\nOutput converters:")
-    for c in get_available_converters():
-        typer.echo(f"  • {c}")
-
-
 @app.callback(invoke_without_command=True)
 def main(
     version: bool = typer.Option(None, "--version", help="Show version and exit."),
-):
+) -> None:
     """
     markup_document_converter — a universal-markup converter.
     """
@@ -98,14 +102,6 @@ def main(
 
         typer.echo(f"markup_document_converter version {__version__}")
         raise typer.Exit()
-
-
-def get_content(input_path: str) -> str:
-    with open(input_path, "r") as fp:
-        content = fp.read()
-    if not content.endswith("\n"):
-        content += "\n"
-    return content
 
 
 if __name__ == "__main__":
