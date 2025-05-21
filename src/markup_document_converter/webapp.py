@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 
 from markup_document_converter.registry import (
     get_available_parsers,
@@ -10,7 +10,7 @@ from markup_document_converter.core import convert_document
 app = Flask(__name__)
 
 
-@app.route("/list-formats", methods=["GET"])
+@app.route("/api/list-formats", methods=["GET"])
 def list_formats():
     """
     Return all supported input parsers and output converters.
@@ -22,7 +22,7 @@ def list_formats():
     return jsonify({"inputFormats": parsers, "outputFormats": converters}), 200
 
 
-@app.route("/convert", methods=["POST"])
+@app.route("/api/convert", methods=["POST"])
 def convert():
     data = request.get_json() or {}
     input_format = data.get("inputFormat")
@@ -59,6 +59,25 @@ def convert():
     result = convert_document(content, input_format, output_format)
 
     return jsonify({"content": result}), 200
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+
+    parsers = get_available_parsers()
+    converters = get_available_converters()
+    result = None
+
+    if request.method == "POST":
+        content = request.form["sourceTextArea"]
+        input_format = request.form["inputFormats"]
+        output_format = request.form["outputFormats"]
+        result = convert_document(content, input_format, output_format)
+        print(content)
+
+    return render_template(
+        "index.html", input_formats=parsers, output_formats=converters, result=result
+    )
 
 
 def main():
