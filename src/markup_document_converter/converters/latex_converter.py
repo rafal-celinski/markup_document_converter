@@ -1,4 +1,4 @@
-import markup_document_converter.ast as ast
+import markup_document_converter.ast_tree as ast
 from markup_document_converter.converters.base_converter import BaseConverter
 from markup_document_converter.registry import register_converter
 

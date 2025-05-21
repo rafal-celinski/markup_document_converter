@@ -1,5 +1,5 @@
 import pytest
-import markup_document_converter.ast as ast
+import markup_document_converter.ast_tree as ast
 from markup_document_converter.converters.latex_converter import LatexConverter
 
 
