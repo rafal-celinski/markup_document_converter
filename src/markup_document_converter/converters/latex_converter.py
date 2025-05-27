@@ -24,7 +24,9 @@ class LatexConverter(BaseConverter):
             "\\usepackage{hyperref}\n"
             "\\usepackage{graphicx}\n"
             "\\usepackage[normalem]{ulem}\n"
+            "\\usepackage{listings}\n"
             "\\usepackage{booktabs}\n"
+            "\\usepackage{xcolor}\n"
             "\\begin{document}\n"
             f"{body}\n"
             "\\end{document}\n"
@@ -97,11 +99,14 @@ class LatexConverter(BaseConverter):
         )
 
     def convert_inline_code(self, inline_code: ast.InlineCode) -> str:
-        text = inline_code.code
-        return f"\\texttt{{{text}}}"
+        raw = inline_code.code or ""
+        escaped = "".join(self.convert_text(ast.Text(ch)) for ch in raw)
+        return f"\\texttt{{{escaped}}}"
 
     def convert_image(self, image: ast.Image) -> str:
-        alt = image.alt_text or ""
+        raw_alt = image.alt_text or ""
+        alt = "".join(self.convert_text(ast.Text(ch)) for ch in raw_alt)
+        
         return (
             f"\\begin{{figure}}[h]\n"
             f"  \\centering\n"
