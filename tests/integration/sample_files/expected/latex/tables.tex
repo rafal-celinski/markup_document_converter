@@ -1,0 +1,77 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage[normalem]{ulem}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\begin{document}
+\section{Tabele}
+
+
+
+\subsection{Podstawowa tabela}
+
+
+
+\begin{tabular}{|l|l|l|}
+\toprule
+\textbf{Nagłówek 1} & \textbf{Nagłówek 2} & \textbf{Nagłówek 3} \\
+\midrule
+Komórka 1 & Komórka 2 & Komórka 3 \\
+Komórka 4 & Komórka 5 & Komórka 6 \\
+\bottomrule
+\end{tabular}
+
+
+
+\subsection{Tabela z wyrównaniem}
+
+
+
+\begin{tabular}{|l|l|l|}
+\toprule
+\textbf{Lewo} & \textbf{Środek} & \textbf{Prawo} \\
+\midrule
+L1 & Ś1 & P1 \\
+L2 & Ś2 & P2 \\
+L3 & Ś3 & P3 \\
+\bottomrule
+\end{tabular}
+
+
+
+\subsection{Tabela z formatowaniem}
+
+
+
+\begin{tabular}{|l|l|l|}
+\toprule
+\textbf{Nazwa} & \textbf{Opis} & \textbf{Status} \\
+\midrule
+\textbf{Projekt A} & \textit{Ważny projekt} & Gotowy \\
+\textbf{Projekt B} & \sout{Anulowany} & Anulowany \\
+\textbf{Projekt C} & \texttt{W trakcie} & W trakcie \\
+\bottomrule
+\end{tabular}
+
+
+
+\subsection{Tabela z linkami}
+
+
+
+\begin{tabular}{|l|l|l|}
+\toprule
+\textbf{Strona} & \textbf{URL} & \textbf{Opis} \\
+\midrule
+Google & \href{https://google.com}{google.com} & Wyszukiwarka \\
+GitHub & \href{https://github.com}{github.com} & Hosting kodu \\
+Stack Overflow & \href{https://stackoverflow.com}{stackoverflow.com} & Q\&A dla programistów \\
+\bottomrule
+\end{tabular}
+
+
+\end{document}

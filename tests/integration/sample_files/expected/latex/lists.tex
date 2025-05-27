@@ -1,0 +1,110 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage[normalem]{ulem}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\begin{document}
+\section{Listy}
+
+
+
+\subsection{Lista nieuporządkowana}
+
+
+
+\begin{itemize}
+  \item Pierwszy element
+
+  \item Drugi element
+
+  \item Trzeci element
+\begin{itemize}
+  \item Zagnieżdżony element
+
+  \item Kolejny zagnieżdżony element
+
+\end{itemize}
+
+
+  \item Czwarty element
+
+\end{itemize}
+
+
+
+\subsection{Lista uporządkowana}
+
+
+
+\begin{enumerate}
+  \item Pierwszy krok
+
+  \item Drugi krok
+
+  \item Trzeci krok
+\begin{enumerate}
+  \item Zagnieżdżony krok
+
+  \item Kolejny zagnieżdżony krok
+
+\end{enumerate}
+
+
+  \item Czwarty krok
+
+\end{enumerate}
+
+
+
+\subsection{Lista zadań}
+
+
+
+\begin{enumerate}
+  \item[$\square$] Zadanie do wykonania
+
+  \item[$\boxtimes$] Zadanie wykonane
+
+  \item[$\square$] Kolejne zadanie
+
+  \item[$\boxtimes$] Inne wykonane zadanie
+
+  \item[$\square$] Zadanie z \textbf{pogrubionym} tekstem
+
+  \item[$\boxtimes$] Zadanie z \textit{pochylonym} tekstem
+
+\end{enumerate}
+
+
+
+\subsection{Mieszane listy}
+
+
+
+\begin{enumerate}
+  \item Pierwszy element listy numerowanej
+\begin{itemize}
+  \item Zagnieżdżony element punktowany
+
+  \item Kolejny zagnieżdżony element
+
+\end{itemize}
+
+
+  \item Drugi element listy numerowanej
+\begin{enumerate}
+  \item[$\square$] Zagnieżdżone zadanie
+
+  \item[$\boxtimes$] Wykonane zagnieżdżone zadanie
+
+\end{enumerate}
+
+
+\end{enumerate}
+
+
+\end{document}
