@@ -94,7 +94,7 @@ def convert(
         first_char = sys.stdin.read(1)
         if first_char:
             typer.secho(
-                "Error: Cannot read from both file and stdin, please provide only one source.",
+                "Error: Cannot read from both file and stdin; please provide only one source.",
                 err=True,
                 fg=typer.colors.RED,
             )
@@ -105,16 +105,9 @@ def convert(
             pass
 
     if read_from_stdin:
-        if sys.stdin.isatty():
-            typer.secho(
-                "Error: No input provided. Please pass a file path or pipe content into stdin.",
-                err=True,
-                fg=typer.colors.RED,
-            )
-            raise typer.Exit(code=1)
-        content = sys.stdin.read()
         if not from_format:
             raise typer.BadParameter("Reading from stdin requires --from-format/-f.")
+        content = sys.stdin.read()
         source_format = from_format.lower()
     else:
         content = input.read_text(encoding="utf-8")
