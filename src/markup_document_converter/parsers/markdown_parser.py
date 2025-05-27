@@ -256,7 +256,16 @@ class MarkdownParser(BaseParser):
                                 list_type = p_node.node_type
                             idx += 1
                         elif curr_nesting > nesting_lvl:
-                            idx = merger(idx, nesting_lvl + 1, list_node, p_nodes)
+                            if not list_node:
+                                list_node = PreNode(node_type=NodeType.LIST)
+                                idx = merger(idx, nesting_lvl + 1, list_node, p_nodes)
+                            else:
+                                idx = merger(
+                                    idx,
+                                    nesting_lvl + 1,
+                                    list_node.pre_children[-1],
+                                    p_nodes,
+                                )
                         elif curr_nesting < nesting_lvl:
                             list_root.pre_children.append(list_node)
                             return idx
@@ -545,8 +554,12 @@ class MarkdownParser(BaseParser):
         node.pre_children[0].content = node.pre_children[0].content[nesting_level + 2 :]
         list_item = ast_tree.ListItem()
         for p_node in node.pre_children:
-            for child in self._parse_inline(p_node.content):
-                list_item.add_child(child)
+            if p_node.node_type == NodeType.TEXT:
+                for child in self._parse_inline(p_node.content):
+                    list_item.add_child(child)
+            else:
+                nested_list = self._process_list(p_node)
+                list_item.add_child(nested_list)
         return list_item
 
     @process_prenode(NodeType.OR_LIST_ITEM)
@@ -564,8 +577,12 @@ class MarkdownParser(BaseParser):
         ]
         list_item = ast_tree.ListItem(order=int(order))
         for p_node in node.pre_children:
-            for child in self._parse_inline(p_node.content):
-                list_item.add_child(child)
+            if p_node.node_type == NodeType.TEXT:
+                for child in self._parse_inline(p_node.content):
+                    list_item.add_child(child)
+            else:
+                nested_list = self._process_list(p_node)
+                list_item.add_child(nested_list)
         return list_item
 
     @process_prenode(NodeType.TASK_LIST_ITEM)
@@ -582,8 +599,12 @@ class MarkdownParser(BaseParser):
 
         list_item = ast_tree.TaskListItem(checked=checked_sign)
         for p_node in node.pre_children:
-            for child in self._parse_inline(p_node.content):
-                list_item.add_child(child)
+            if p_node.node_type == NodeType.TEXT:
+                for child in self._parse_inline(p_node.content):
+                    list_item.add_child(child)
+            else:
+                nested_list = self._process_list(p_node)
+                list_item.add_child(nested_list)
         return list_item
 
     @process_prenode(NodeType.PARAGRAPH)
