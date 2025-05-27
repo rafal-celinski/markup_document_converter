@@ -87,6 +87,14 @@ def convert(
         typer.secho(f"Error: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
+    except FileNotFoundError as e:
+        typer.secho(
+            f"Error: Cannot save file to a non-existent directory.",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
     except Exception as e:
         typer.secho(f"Unexpected error: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
