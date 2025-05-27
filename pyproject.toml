@@ -16,7 +16,9 @@ dependencies = [
 packages = [{include = "markup_document_converter", from = "src"}]
 
 [tool.poetry.scripts]
-markdown_example = "tests.converters.markdown_converter_example:main"
+markdown_example = "tests.unit.converters.markdown_converter_example:main"
+markup_document_converter = "markup_document_converter.cli:app"
+webapp = "markup_document_converter.webapp:main"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
