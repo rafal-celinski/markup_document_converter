@@ -1,4 +1,6 @@
 from pathlib import Path
+import sys
+from typing import Optional
 
 import typer
 
@@ -36,15 +38,35 @@ def list_formats() -> None:
             typer.echo(f"  • {primary}")
 
 
+@app.command("webapp")
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
+    port: int = typer.Option(5000, "--port", "-p", help="Port to listen on"),
+    debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
+) -> None:
+    """
+    Run the Flask web-app.
+    """
+    from markup_document_converter.webapp import app as flask_app
+
+    flask_app.run(host=host, port=port, debug=debug)
+
+
 @app.command("convert")
 def convert(
-    input: Path = typer.Argument(
-        ...,
+    input: Optional[Path] = typer.Argument(
+        None,
         exists=True,
         file_okay=True,
         dir_okay=False,
         readable=True,
-        help="Path to the input file to convert (e.g. README.md)",
+        help="Path to the input file to convert (e.g. README.md). Omit to read from stdin.",
+    ),
+    from_format: Optional[str] = typer.Option(
+        None,
+        "--from-format",
+        "-f",
+        help="When reading from stdin, the input format (e.g. 'markdown').",
     ),
     to: str = typer.Option(
         ...,
@@ -53,7 +75,7 @@ def convert(
         help="Target format. Choose from: "
         + ", ".join(name for name, _ in get_available_converters()),
     ),
-    output: Path = typer.Option(
+    output: Optional[Path] = typer.Option(
         None,
         "--output",
         "-o",
@@ -63,15 +85,45 @@ def convert(
     ),
 ) -> None:
     """
-    Read INPUT, parse it to the universal AST, then render as the chosen TARGET format.
+    Read from a file or stdin, parse to the universal AST, then render as the chosen TARGET format.
     """
-    try:
-        content = input.read_text(encoding="utf-8")
-        if not content.endswith("\n"):
-            content += "\n"
+    read_from_stdin = input is None or str(input) == "-"
+    read_from_file = not read_from_stdin
 
+    if read_from_file and not sys.stdin.isatty():
+        first_char = sys.stdin.read(1)
+        if first_char:
+            typer.secho(
+                "Error: Cannot read from both file and stdin, please provide only one source.",
+                err=True,
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        try:
+            sys.stdin.seek(0)
+        except Exception:
+            pass
+
+    if read_from_stdin:
+        if sys.stdin.isatty():
+            typer.secho(
+                "Error: No input provided. Please pass a file path or pipe content into stdin.",
+                err=True,
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        content = sys.stdin.read()
+        if not from_format:
+            raise typer.BadParameter("Reading from stdin requires --from-format/-f.")
+        source_format = from_format.lower()
+    else:
+        content = input.read_text(encoding="utf-8")
         source_format = input.suffix.lstrip(".").lower()
 
+    if not content.endswith("\n"):
+        content += "\n"
+
+    try:
         result = convert_document(
             content=content,
             source_format=source_format,
