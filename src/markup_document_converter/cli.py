@@ -90,7 +90,6 @@ def convert(
     read_from_stdin = input is None or str(input) == "-"
     read_from_file = not read_from_stdin
 
-    # Conflict when file and actual piped data
     if read_from_file and not sys.stdin.isatty():
         first_char = sys.stdin.read(1)
         if first_char:
@@ -105,9 +104,7 @@ def convert(
         except Exception:
             pass
 
-    # Read content
     if read_from_stdin:
-        # Validate from_format for stdin
         if not from_format:
             typer.secho(
                 "Error: Reading from stdin requires --from-format/-f.",
@@ -115,7 +112,6 @@ def convert(
                 fg=typer.colors.RED,
             )
             raise typer.Exit(code=1)
-        # Read all stdin
         content = sys.stdin.read()
         source_format = from_format.lower()
     else:
