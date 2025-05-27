@@ -6,6 +6,7 @@ from markup_document_converter.registry import (
     get_available_parsers,
     get_available_converters,
 )
+import os
 
 
 app = typer.Typer(
@@ -50,8 +51,18 @@ def convert(
     Read INPUT, parse it to the universal AST, then render as the chosen TARGET format.
     """
 
+    input_path = str(input)
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    content = get_content(input_path)
+
+    _, ext = os.path.splitext(input_path)
+    source_format = ext.lstrip(".").lower()
+
     result = convert_document(
-        input_path=str(input),
+        content=content,
+        source_format=source_format,
         target_format=to.lower(),
     )
 
@@ -87,6 +98,14 @@ def main(
 
         typer.echo(f"markup_document_converter version {__version__}")
         raise typer.Exit()
+
+
+def get_content(input_path: str) -> str:
+    with open(input_path, "r") as fp:
+        content = fp.read()
+    if not content.endswith("\n"):
+        content += "\n"
+    return content
 
 
 if __name__ == "__main__":
