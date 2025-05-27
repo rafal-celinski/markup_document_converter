@@ -90,8 +90,7 @@ def process_prenode(node_type: NodeType) -> Callable:
     return decorator
 
 
-@register_parser("md")
-@register_parser("markdown")
+@register_parser("markdown", "md")
 class MarkdownParser(BaseParser):
     def __init__(self) -> None:
         """

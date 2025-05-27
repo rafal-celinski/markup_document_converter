@@ -106,6 +106,7 @@ class LatexConverter(BaseConverter):
     def convert_image(self, image: ast.Image) -> str:
         raw_alt = image.alt_text or ""
         alt = "".join(self.convert_text(ast.Text(ch)) for ch in raw_alt)
+
         return (
             f"\\begin{{figure}}[h]\n"
             f"  \\centering\n"

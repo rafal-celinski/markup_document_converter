@@ -16,8 +16,8 @@ def list_formats():
     Return all supported input parsers and output converters.
     """
 
-    parsers = get_available_parsers()
-    converters = get_available_converters()
+    parsers = [primary for primary, _ in get_available_parsers()]
+    converters = [primary for primary, _ in get_available_converters()]
 
     return jsonify({"inputFormats": parsers, "outputFormats": converters}), 200
 
@@ -44,8 +44,8 @@ def convert():
     input_format = input_format.lower()
     output_format = output_format.lower()
 
-    parsers = get_available_parsers()
-    converters = get_available_converters()
+    parsers = [primary for primary, _ in get_available_parsers()]
+    converters = [primary for primary, _ in get_available_converters()]
 
     if input_format not in parsers:
         error_dict["inputFormat"] = "Unsupported format"
@@ -64,8 +64,9 @@ def convert():
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    parsers = get_available_parsers()
-    converters = get_available_converters()
+    parsers = [primary for primary, _ in get_available_parsers()]
+    converters = [primary for primary, _ in get_available_converters()]
+
     result = None
 
     if request.method == "POST":
