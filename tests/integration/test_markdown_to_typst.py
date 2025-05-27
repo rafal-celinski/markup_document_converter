@@ -42,14 +42,14 @@ class TestMarkdownToTypst:
     def test_source_expected(self, source_filename, expected_filename):
         markdown_source_file_path = (
             Path(__file__).parent
-            / "test_files"
+            / "sample_files"
             / "source"
             / "markdown"
             / source_filename
         )
         typst_expected_file_path = (
             Path(__file__).parent
-            / "test_files"
+            / "sample_files"
             / "expected"
             / "typst"
             / expected_filename
