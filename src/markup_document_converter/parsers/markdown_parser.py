@@ -634,6 +634,7 @@ class MarkdownParser(BaseParser):
             if child.node_type == NodeType.BLOCKQOUTE:
                 blockqoute_node.add_child(self._process_blockqoute(child))
             else:
+                child.content = child.content.lstrip(" >")
                 for inline_child in self._parse_inline(child.content):
                     blockqoute_node.add_child(inline_child)
         return blockqoute_node
