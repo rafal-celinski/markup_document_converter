@@ -36,7 +36,7 @@ class TestMarkdownToTypst:
             ("links_and_images.md", "links_and_images.typ"),
             ("tables.md", "tables.typ"),
             ("quotes_and_breaks.md", "quotes_and_breaks.typ"),
-            # ("code_blocks.md", "code_blocks.typ"), Inline codes doesn't work in typst :(
+            ("code_blocks.md", "code_blocks.typ"),
         ],
     )
     def test_source_expected(self, source_filename, expected_filename):

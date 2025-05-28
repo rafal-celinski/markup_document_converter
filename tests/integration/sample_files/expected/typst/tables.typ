@@ -27,7 +27,7 @@
 	table.header([Nazwa], [Opis], [Status], ),
 	[*Projekt A*], [_Ważny projekt_], [Gotowy], 
 	[*Projekt B*], [#strike[Anulowany]], [Anulowany], 
-	[*Projekt C*], [```W trakcie```], [W trakcie], 
+	[*Projekt C*], [```text W trakcie```], [W trakcie], 
 )
 \ 
 == Tabela z linkami
