@@ -112,7 +112,7 @@ class Heading(ASTNode):
 
         Args:
             level (int): Heading level (e.g., 1 for H1).
-            children (list, optional): Child nodes. Defaults to None. Reprezents headning text
+            children (list, optional): Child nodes. Defaults to None. Represents heading text.
         """
         super().__init__("heading", children, attributes={"level": level})
 
@@ -147,7 +147,7 @@ class Bold(ASTNode):
         Initialize a Bold node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None. Reprezents bold text
+            children (list, optional): Child nodes. Defaults to None. Represents bold text.
         """
         super().__init__("bold", children)
 
@@ -165,7 +165,7 @@ class Italic(ASTNode):
         Initialize an Italic node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None. Represents italic text
+            children (list, optional): Child nodes. Defaults to None. Represents italic text.
         """
         super().__init__("italic", children)
 
@@ -183,7 +183,7 @@ class Strike(ASTNode):
         Initialize a Strike node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None. Represents strike text.
+            children (list, optional): Child nodes. Defaults to None. Represents strikethrough text.
         """
         super().__init__("strike", children)
 
@@ -236,7 +236,7 @@ class Paragraph(ASTNode):
         Initialize a Paragraph node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None. Represents paragraph body
+            children (list, optional): Child nodes. Defaults to None. Represents paragraph body.
         """
         super().__init__("paragraph", children)
 
@@ -269,7 +269,7 @@ class Blockquote(ASTNode):
         Initialize a Blockquote node.
 
         Args:
-            children (list, optional): Child nodes. Defaults to None. Represents Blockquote body
+            children (list, optional): Child nodes. Defaults to None. Represents blockquote body.
         """
         super().__init__("blockquote", children)
 
