@@ -10,6 +10,9 @@ from markup_document_converter.registry import (
 )
 from markup_document_converter.core import convert_document
 
+from waitress import serve
+from markup_document_converter.webapp import app as flask_app
+
 app = typer.Typer(
     name="markup_document_converter",
     help="Convert Markdown into Typst or LaTeX via a universal AST.",
@@ -39,7 +42,7 @@ def list_formats() -> None:
 
 
 @app.command("webapp")
-def serve(
+def webapp(
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
     port: int = typer.Option(5000, "--port", "-p", help="Port to listen on"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
@@ -47,9 +50,14 @@ def serve(
     """
     Run the Flask web-app.
     """
-    from markup_document_converter.webapp import app as flask_app
 
-    flask_app.run(host=host, port=port, debug=debug)
+    if debug:
+        flask_app.run(host=host, port=port, debug=True)
+    else:
+        typer.secho("Serving Markup Document Converter Web App")
+        typer.secho(f"\nRunning on http://{host}:{port}")
+        typer.secho("Press CTRL+C to quit", fg=typer.colors.YELLOW)
+        serve(flask_app, host=host, port=port)
 
 
 @app.command("convert")
