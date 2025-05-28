@@ -1,0 +1,28 @@
+site_name: Markup Document Converter
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Project Files:
+      - CLI: api/cli.md
+      - AST Tree: api/ast_tree.md
+      - Parsers:
+        - Base Parser: api/parsers/base_parser.md
+        - Markdown Parser: api/parsers/markdown_parser.md
+      - Converters:
+        - Base Converter: api/converters/base_converter.md
+        - Typst Converter: api/converters/typst_converter.md
+        - LaTeX Converter: api/converters/latex_converter.md
+      - Core: api/core.md
+      - Registry: api/registry.md
+      - Web App: api/webapp.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]

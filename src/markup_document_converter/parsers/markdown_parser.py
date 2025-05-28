@@ -8,6 +8,10 @@ from typing import Callable, List
 
 
 class NodeType(Enum):
+    """
+    Enumeration of all possible node types detected during Markdown preprocessing.
+    """
+
     HEADING = auto()
     UR_LIST_ITEM = auto()
     OR_LIST_ITEM = auto()
@@ -44,6 +48,15 @@ def get_text_content(node):
 
 @dataclass(order=True)
 class PreNode:
+    """
+    Represents a pre-processed node used for intermediate parsing before final AST conversion.
+
+    Attributes:
+        content (str): The raw content of the node.
+        node_type (NodeType): The type of this node.
+        pre_children (list): A list of child PreNodes.
+    """
+
     node_type: NodeType
     content: str = field(default_factory=str)
     pre_children: list = field(default_factory=list)
@@ -69,6 +82,10 @@ def process_prenode(node_type: NodeType) -> Callable:
 
 @register_parser("markdown", "md")
 class MarkdownParser(BaseParser):
+    """
+    Parser for converting Markdown text into an abstract syntax tree (AST).
+    """
+
     def __init__(self) -> None:
         """
         Initializes the MarkdownConverter. Compiles regex patterns and registers
@@ -123,8 +140,8 @@ class MarkdownParser(BaseParser):
         lines = content.splitlines(keepends=True)
         root = ast_tree.Document()
 
-        pre_nodes = self._generate_prenodes(lines)
-        pre_nodes = self._group_pre_nodes(pre_nodes)
+        pre_nodes = self.generate_prenodes(lines)
+        pre_nodes = self.group_pre_nodes(pre_nodes)
 
         for node in pre_nodes:
             handler = self.node_funcs[node.node_type]
@@ -133,7 +150,7 @@ class MarkdownParser(BaseParser):
 
         return root
 
-    def _group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
+    def group_pre_nodes(self, pre_nodes: List[PreNode]) -> List[PreNode]:
         """
         Groups consecutive TEXT nodes into PARAGRAPH nodes and retains single-line node types.
 
@@ -145,6 +162,16 @@ class MarkdownParser(BaseParser):
         """
 
         def group_blockqoutes(pre_nodes: list[PreNode]):
+            """
+            Groups nested blockquotes into hierarchical structures.
+
+            Args:
+                nodes (list[PreNode]): Flat list of PreNodes.
+
+            Returns:
+                list[PreNode]: Transformed list with nested blockquote structure.
+            """
+
             def merger(
                 idx: int,
                 p_nodes: list[PreNode],
@@ -204,6 +231,16 @@ class MarkdownParser(BaseParser):
             return new_grouped
 
         def group_lists(pre_nodes: list[PreNode]):
+            """
+            Groups list items into list structures based on nesting level.
+
+            Args:
+                nodes (list[PreNode]): Flat list of PreNodes.
+
+            Returns:
+                list[PreNode]: Transformed list with list structure.
+            """
+
             def merger(
                 idx: int, nesting_lvl: int, list_root: PreNode, p_nodes: list[PreNode]
             ) -> int:
@@ -310,6 +347,15 @@ class MarkdownParser(BaseParser):
             return new_grouped
 
         def group_code_blocks(pre_nodes: list[PreNode]):
+            """
+            Groups contents of code blocks into structures.
+
+            Args:
+                nodes (list[PreNode]): Flat list of PreNodes.
+
+            Returns:
+                list[PreNode]: Transformed list with code blocks structure.
+            """
             grouped = []
             grouping_node = None
 
@@ -335,6 +381,15 @@ class MarkdownParser(BaseParser):
             return grouped
 
         def group_table_rows(pre_nodes: list[PreNode]):
+            """
+            Groups contents of tables into structures.
+
+            Args:
+                nodes (list[PreNode]): Flat list of PreNodes.
+
+            Returns:
+                list[PreNode]: Transformed list with full tables structure.
+            """
             idx = 0
             grouped = []
             grouping_node = None
@@ -367,6 +422,15 @@ class MarkdownParser(BaseParser):
             return grouped
 
         def group_paragraphs(pre_nodes):
+            """
+            Groups rest of TEXT pre_nodes into paragraphs.
+
+            Args:
+                nodes (list[PreNode]): Flat list of PreNodes.
+
+            Returns:
+                list[PreNode]: Transformed list with paragraph structure.
+            """
             grouped = []
             grouping_node = None
             for p_node in pre_nodes:
@@ -392,7 +456,7 @@ class MarkdownParser(BaseParser):
         post_paragraphs = group_paragraphs(post_lists)
         return post_paragraphs
 
-    def _generate_prenodes(self, lines: List[str]) -> List[PreNode]:
+    def generate_prenodes(self, lines: List[str]) -> List[PreNode]:
         """
         Converts lines of text into PreNodes using pattern matching.
 
@@ -410,7 +474,7 @@ class MarkdownParser(BaseParser):
                     break
         return pre_nodes
 
-    def _build_inline_node(
+    def build_inline_node(
         self, node_class: type[ast_tree.ASTNode], content: str
     ) -> ast_tree.ASTNode:
         """
@@ -424,11 +488,11 @@ class MarkdownParser(BaseParser):
             ASTNode: Parsed inline node.
         """
         node = node_class()
-        for child in self._parse_inline(content):
+        for child in self.parse_inline(content):
             node.add_child(child)
         return node
 
-    def _parse_match(self, match: re.Match) -> ast_tree.ASTNode:
+    def parse_match(self, match: re.Match) -> ast_tree.ASTNode:
         """
         Converts a regex match to the appropriate inline AST node.
 
@@ -452,7 +516,7 @@ class MarkdownParser(BaseParser):
             if match.group(group_name):
                 if group_name == "code":
                     return node_class(code=match.group("code_content"))
-                return self._build_inline_node(
+                return self.build_inline_node(
                     node_class, match.group(f"{group_name}_content")
                 )
 
@@ -460,10 +524,10 @@ class MarkdownParser(BaseParser):
             stars = match.group("stars")
             content = match.group("stars_content")
             if len(stars) % 2 == 0:
-                return self._build_inline_node(ast_tree.Bold, content)
+                return self.build_inline_node(ast_tree.Bold, content)
             else:
                 bold_node = ast_tree.Bold()
-                italic_node = self._build_inline_node(ast_tree.Italic, content)
+                italic_node = self.build_inline_node(ast_tree.Italic, content)
                 bold_node.add_child(italic_node)
                 return bold_node
 
@@ -471,7 +535,7 @@ class MarkdownParser(BaseParser):
             text = match.group("link_text")
             url = match.group("link_url")
             link_node = ast_tree.Link(source=url)
-            for child in self._parse_inline(text):
+            for child in self.parse_inline(text):
                 link_node.add_child(child)
             return link_node
 
@@ -482,7 +546,7 @@ class MarkdownParser(BaseParser):
 
         raise ValueError("Unrecognized inline match")
 
-    def _parse_inline(self, text: str) -> List[ast_tree.ASTNode]:
+    def parse_inline(self, text: str) -> List[ast_tree.ASTNode]:
         """
         Parses a string with potential inline formatting into a list of AST nodes.
 
@@ -505,30 +569,48 @@ class MarkdownParser(BaseParser):
             start, end = match.span()
             if start > pos:
                 children.append(ast_tree.Text(text[pos:start]))
-            children.append(self._parse_match(match))
+            children.append(self.parse_match(match))
             pos = end
 
         return children
 
     @process_prenode(NodeType.LINE_BREAK)
-    def _process_line_break(self, node: PreNode) -> ast_tree.ASTNode:
-        """Converts a line break PreNode to a LineBreak AST node."""
+    def process_line_break(self, node: PreNode) -> ast_tree.ASTNode:
+        """Converts a line break PreNode to a LineBreak AST node.
+        Args:
+            node (PreNode): A line_break PreNode - always empty.
+
+        Returns:
+            ast_tree.LineBreak: A LineBreak AST node.
+        """
         return ast_tree.LineBreak()
 
     @process_prenode(NodeType.HEADING)
-    def _process_heading(self, node: PreNode) -> ast_tree.ASTNode:
-        """Parses heading syntax and returns a Heading AST node."""
+    def process_heading(self, node: PreNode) -> ast_tree.ASTNode:
+        """Parses heading syntax and returns a Heading AST node.
+        Args:
+            node (PreNode): A heading PreNode.
+
+        Returns:
+            ast_tree.Heading: A Heading AST node with parsed inline children.
+        """
         heading_level = len(re.findall(r"#+", node.content)[0])
         node.content = node.content.lstrip("# ").rstrip("\n")
 
         heading = ast_tree.Heading(level=heading_level)
-        for child in self._parse_inline(node.content):
+        for child in self.parse_inline(node.content):
             heading.add_child(child)
         return heading
 
     @process_prenode(NodeType.UR_LIST_ITEM)
-    def _process_ur_list_item(self, node: PreNode) -> ast_tree.ASTNode:
-        """Parses unordered list item into ListItem AST node."""
+    def process_ur_list_item(self, node: PreNode) -> ast_tree.ASTNode:
+        """Parses unordered list item into ListItem AST node.
+        Args:
+            node (PreNode): An unordered list item PreNode.
+
+        Returns:
+            ast_tree.ListItem: A ListItem AST node of None order with parsed inline children .
+        """
         nesting_level = len(node.pre_children[0].content) - len(
             node.pre_children[0].content.lstrip()
         )
@@ -536,7 +618,7 @@ class MarkdownParser(BaseParser):
         list_item = ast_tree.ListItem()
         for p_node in node.pre_children:
             if p_node.node_type == NodeType.TEXT:
-                for child in self._parse_inline(p_node.content):
+                for child in self.parse_inline(p_node.content):
                     list_item.add_child(child)
             else:
                 handler = self.node_funcs[p_node.node_type]
@@ -545,8 +627,14 @@ class MarkdownParser(BaseParser):
         return list_item
 
     @process_prenode(NodeType.OR_LIST_ITEM)
-    def _process_or_list_item(self, node: PreNode) -> ast_tree.ASTNode:
-        """Parses ordered list item into ListItem AST node."""
+    def process_or_list_item(self, node: PreNode) -> ast_tree.ASTNode:
+        """Parses ordered list item into ListItem AST node.
+        Args:
+            node (PreNode): An ordered list item PreNode.
+
+        Returns:
+            ast_tree.ListItem: A ListItem AST node of numeric order with parsed inline children.
+        """
         nesting_level = len(node.pre_children[0].content) - len(
             node.pre_children[0].content.lstrip()
         )
@@ -560,7 +648,7 @@ class MarkdownParser(BaseParser):
         list_item = ast_tree.ListItem(order=int(order))
         for p_node in node.pre_children:
             if p_node.node_type == NodeType.TEXT:
-                for child in self._parse_inline(p_node.content):
+                for child in self.parse_inline(p_node.content):
                     list_item.add_child(child)
             else:
                 handler = self.node_funcs[p_node.node_type]
@@ -569,8 +657,14 @@ class MarkdownParser(BaseParser):
         return list_item
 
     @process_prenode(NodeType.TASK_LIST_ITEM)
-    def _process_task_list_item(self, node: PreNode) -> ast_tree.ASTNode:
-        """Parses task list item into TaskListItem AST node."""
+    def process_task_list_item(self, node: PreNode) -> ast_tree.ASTNode:
+        """Parses task list item into TaskListItem AST node.
+        Args:
+            node (PreNode): A task list item PreNode.
+
+        Returns:
+            ast_tree.TaskListItem: A TaskListItem AST node with parsed inline children.
+        """
         checked_sign = re.findall(r"\[( |x|X)\]", node.pre_children[0].content)[0]
         checked_sign = not checked_sign.strip() == ""
         sign_len = len(
@@ -583,7 +677,7 @@ class MarkdownParser(BaseParser):
         list_item = ast_tree.TaskListItem(checked=checked_sign)
         for p_node in node.pre_children:
             if p_node.node_type == NodeType.TEXT:
-                for child in self._parse_inline(p_node.content):
+                for child in self.parse_inline(p_node.content):
                     list_item.add_child(child)
             else:
                 handler = self.node_funcs[p_node.node_type]
@@ -592,7 +686,7 @@ class MarkdownParser(BaseParser):
         return list_item
 
     @process_prenode(NodeType.PARAGRAPH)
-    def _process_paragraph(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_paragraph(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses a paragraph and returns a Paragraph AST node.
 
@@ -600,33 +694,44 @@ class MarkdownParser(BaseParser):
             node (PreNode): A PreNode containing paragraph text.
 
         Returns:
-            Paragraph: A Paragraph AST node with parsed inline children.
+            ast_tree.Paragraph: A Paragraph AST node with parsed inline children.
         """
         paragraph_node = ast_tree.Paragraph()
         for p_node in node.pre_children:
-            for inline_child in self._parse_inline(p_node.content):
+            for inline_child in self.parse_inline(p_node.content):
                 paragraph_node.add_child(inline_child)
         return paragraph_node
 
     @process_prenode(NodeType.BLOCKQOUTE)
-    def _process_blockqoute(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_blockqoute(self, node: PreNode) -> ast_tree.ASTNode:
         """
-        Parses a blockqoute and returns Blockqoute AST node.
+        Parses a nested blockquote from a PreNode tree and returns a Blockquote AST node.
+
+        Args:
+            node (PreNode): The root PreNode representing a blockquote (possibly nested).
+
+        Returns:
+            ast_tree.Blockquote: A fully populated Blockquote AST node.
         """
         blockqoute_node = ast_tree.Blockquote()
         for child in node.pre_children:
             if child.node_type == NodeType.BLOCKQOUTE:
-                blockqoute_node.add_child(self._process_blockqoute(child))
+                blockqoute_node.add_child(self.process_blockqoute(child))
             else:
                 child.content = child.content.lstrip(" >")
-                for inline_child in self._parse_inline(child.content):
+                for inline_child in self.parse_inline(child.content):
                     blockqoute_node.add_child(inline_child)
         return blockqoute_node
 
     @process_prenode(NodeType.CODE_BLOCK)
-    def _process_code_block(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_code_block(self, node: PreNode) -> ast_tree.ASTNode:
         """
         Parses a code block and returns CodeBlock AST node.
+        Args:
+            node (PreNode): The CodeBlock pre_node.
+
+        Returns:
+            ast_tree.CodeBlock: A CodeBlock AST node.
         """
         language = re.findall(r"```(.*)\n", node.content)[0]
         first_line_len = len(re.findall(r".*\n", node.content)[0])
@@ -635,12 +740,17 @@ class MarkdownParser(BaseParser):
         return code_block_node
 
     @process_prenode(NodeType.TABLE)
-    def _process_table(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_table(self, node: PreNode) -> ast_tree.ASTNode:
         """
-        Parses table returns Table AST node.
+        Parses table, delegates row parsing and returns Table AST node.
+        Args:
+            node (PreNode): The Table pre_node.
+
+        Returns:
+            ast_tree.Table: A Table AST node.
         """
         text = node.content.splitlines(keepends=True)
-        pre_nodes = self._generate_prenodes(text)
+        pre_nodes = self.generate_prenodes(text)
 
         alignments = []
         header = pre_nodes[0]
@@ -659,23 +769,29 @@ class MarkdownParser(BaseParser):
                 alignments.append("right")
             else:
                 alignments.append("left")
-        header_node = self._process_table_row(
+        header_node = self.process_table_row(
             header.content, is_header=True, correct_len=col_num, alignments=alignments
         )
         table_node.add_child(header_node)
         for rw in rows if rows else []:
-            row_node = self._process_table_row(
+            row_node = self.process_table_row(
                 rw.content, is_header=False, correct_len=col_num, alignments=alignments
             )
             table_node.add_child(row_node)
         return table_node
 
     @process_prenode(NodeType.TABLE_ROW)
-    def _process_table_row(
+    def process_table_row(
         self, text: str, is_header: bool, correct_len: int, alignments: list[str]
     ) -> ast_tree.ASTNode:
         """
         Parses table row and returns TableRow AST node.
+
+        Args:
+            node (PreNode): The Table Row pre_node.
+
+        Returns:
+            ast_tree.Table: A TableRow AST node.
         """
         cols = text.strip().split("|")
         cleaned = [s for s in cols if len(s) != 0]
@@ -685,17 +801,36 @@ class MarkdownParser(BaseParser):
         for idx, cl in enumerate(cleaned):
             cl = cl.strip()
             cell_node = ast_tree.TableCell(alignment=alignments[idx])
-            for child in self._parse_inline(cl):
+            for child in self.parse_inline(cl):
                 cell_node.add_child(child)
             row_node.add_child(cell_node)
         return row_node
 
     @process_prenode(NodeType.HORIZONTAL_RULE)
-    def _process_horizontal_rule(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_horizontal_rule(self, node: PreNode) -> ast_tree.ASTNode:
+        """
+        Converts a horizontal rule PreNode into a HorizontalRule AST node.
+
+        Args:
+            node (PreNode): A PreNode of type HORIZONTAL_RULE.
+
+        Returns:
+            ast_tree.HorizontalRule: A horizontal rule node for the AST.
+        """
         return ast_tree.HorizontalRule()
 
     @process_prenode(NodeType.LIST)
-    def _process_list(self, node: PreNode) -> ast_tree.ASTNode:
+    def process_list(self, node: PreNode) -> ast_tree.ASTNode:
+        """
+        Converts a LIST PreNode into an AST List node.
+        Determines the list type based on its first relevant child.
+
+        Args:
+            node (PreNode): A PreNode of type LIST containing nested list items.
+
+        Returns:
+            ast_tree.List: A List AST node with the appropriate type and children.
+        """
         list_node = ast_tree.List(list_type="unordered")
 
         for child in node.pre_children:
