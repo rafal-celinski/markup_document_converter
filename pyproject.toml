@@ -21,7 +21,8 @@ dependencies = [
 packages = [{include = "markup_document_converter", from = "src"}]
 
 [tool.poetry.scripts]
-markup_document_converter = "markup_document_converter.cli:app"
+markup_converter = "markup_document_converter.cli:app"
+mdc = "markup_document_converter.cli:app"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
