@@ -1,13 +1,8 @@
 import pytest
 from markup_document_converter.parsers.markdown_parser import (
     MarkdownParser,
-    print_node,
-    PreNode,
-    NodeType,
 )
 import markup_document_converter.ast_tree as ast_tree
-import io
-import contextlib
 
 
 @pytest.fixture
@@ -168,26 +163,3 @@ def test_empty_content(parser):
     doc = parser.to_AST("")
     assert isinstance(doc, ast_tree.Document)
     assert doc.children == []
-
-
-def test_print_node_basic():
-    # TEXT node
-    node_text = PreNode(node_type=NodeType.TEXT, content="hello\n")
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        print_node(node_text)
-    assert buf.getvalue() == "hello\n"
-
-    # LINE_BREAK node
-    node_lb = PreNode(node_type=NodeType.LINE_BREAK)
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        print_node(node_lb)
-    assert buf.getvalue() == "\n"
-
-    # HORIZONTAL_RULE node
-    node_hr = PreNode(node_type=NodeType.HORIZONTAL_RULE)
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        print_node(node_hr)
-    assert buf.getvalue() == "---\n"
