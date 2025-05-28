@@ -35,7 +35,7 @@ class TestMarkdownToTypst:
             ("lists.md", "lists.typ"),
             ("links_and_images.md", "links_and_images.typ"),
             ("tables.md", "tables.typ"),
-            # ("quotes_and_breaks.md", "quotes_and_breaks.typ"), Quotes doesn't work in markdown :(
+            ("quotes_and_breaks.md", "quotes_and_breaks.typ"),
             # ("code_blocks.md", "code_blocks.typ"), Inline codes doesn't work in typst :(
         ],
     )

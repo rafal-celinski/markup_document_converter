@@ -35,7 +35,7 @@ class TestMarkdownToLatex:
             ("lists.md", "lists.tex"),
             ("links_and_images.md", "links_and_images.tex"),
             ("tables.md", "tables.tex"),
-            # ("quotes_and_breaks.md", "quotes_and_breaks.tex"), Quotes doesn't work in markdown :(
+            ("quotes_and_breaks.md", "quotes_and_breaks.tex"),
             ("code_blocks.md", "code_blocks.tex"),
         ],
     )
