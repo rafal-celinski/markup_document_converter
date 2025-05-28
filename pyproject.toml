@@ -3,16 +3,14 @@ name = "markup-document-converter"
 version = "0.4.4"
 description = ""
 authors = [
-    {name = "Rafał Celiński",email = "dev@rafalcelinski.pl"},
-    {name = "Mateusz Łukasiewicz",email = "mateuszlu2106@gmail.com"},
-    {name = "Przemysław Walecki", email= "p.walecki12@gmail.com"}
+    {name = "Rafał Celiński", email = "dev@rafalcelinski.pl"},
+    {name = "Mateusz Łukasiewicz", email = "mateuszlu2106@gmail.com"},
+    {name = "Przemysław Walecki", email = "p.walecki12@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pytest (>=8.3.5,<9.0.0)",
     "typer[all] (>=0.15.3,<0.16.0)",
-    "pytest-cov (>=6.1.1,<7.0.0)",
     "flask (>=3.1.1,<4.0.0)",
     "waitress (>=3.0.2,<4.0.0)"
 ]
@@ -28,6 +26,8 @@ mdc = "markup_document_converter.cli:app"
 black = "^25.1.0"
 flake8 = "^7.1.2"
 pre-commit = "^4.2.0"
+pytest = ">=8.3.5,<9.0.0"
+pytest-cov = ">=6.1.1,<7.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
