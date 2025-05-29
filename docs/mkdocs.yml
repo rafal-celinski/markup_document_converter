@@ -19,6 +19,7 @@ nav:
       - Core: api/core.md
       - Registry: api/registry.md
       - Web App: api/webapp.md
+  - CLI Application: typer_cli_docs.md
 
 plugins:
   - search
