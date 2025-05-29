@@ -6,7 +6,7 @@
 
 ## 📦 Installation
 
-**Python version required:** `>=3.13`
+**Python version required:** `>=3.9`
 
 1. Clone the repository:
 
@@ -24,9 +24,16 @@ poetry install
 3. Activate the virtual environment:
 
 ```bash
-poetry shell
+poetry env activate
 ```
 
+### OR
+
+You can download the `.whl` (wheel) file directly from the our [GitHub Releases page](https://github.com/rafal-celinski/markup_document_converter/releases). Simply navigate to the latest release, find the `.whl` file under "Assets", and download it to your local machine. Once downloaded, you can install it using pip:
+
+```bash
+pip install ./markup_document_converter-{version}-py3-none-any.whl
+```
 ---
 
 ## 🚀 CLI Usage
@@ -110,16 +117,11 @@ markup_document_converter/
 
 This project uses **MkDocs** with `mkdocstrings` and `mkdocs-material`.
 
-1. Install documentation dependencies:
+
+To Run documentation locally:
 
 ```bash
-poetry add --group docs mkdocs mkdocstrings[python] mkdocs-material
-```
-
-2. Run documentation locally:
-
-```bash
-poetry run mkdocs serve
+poetry run mkdocs serve -f docs/mkdocs.yml
 ```
 
 Docs will be available at: [http://localhost:8000](http://localhost:8000)
@@ -151,8 +153,8 @@ To add a new format (parser or converter):
 
 Developed by
 
-**Mateusz Łukasiewicz**
-**Przemysław Walecki**
-**Rafał Celiński**
+* **Mateusz Łukasiewicz**
+* **Przemysław Walecki**
+* **Rafał Celiński**
 
 ---

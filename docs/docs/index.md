@@ -6,7 +6,7 @@
 
 ## 📦 Installation
 
-**Python version required:** `>=3.13`
+**Python version required:** `>=3.9`
 
 1. Clone the repository:
 
@@ -24,7 +24,7 @@ poetry install
 3. Activate the virtual environment:
 
 ```bash
-poetry shell
+poetry env activate
 ```
 
 ---
@@ -47,16 +47,11 @@ markup_document_converter/
 
 This project uses **MkDocs** with `mkdocstrings` and `mkdocs-material`.
 
-1. Install documentation dependencies:
+
+To Run documentation locally:
 
 ```bash
-poetry add --group docs mkdocs mkdocstrings[python] mkdocs-material
-```
-
-2. Run documentation locally:
-
-```bash
-poetry run mkdocs serve
+poetry run mkdocs serve -f docs/mkdocs.yml
 ```
 
 Docs will be available at: [http://localhost:8000](http://localhost:8000)
