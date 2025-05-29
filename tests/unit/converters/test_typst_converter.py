@@ -415,7 +415,7 @@ class TestTypstConverter:
 
         result = inline_code.convert(self.typst_converter)
 
-        assert result == "```print('Hello World!')```"
+        assert result == "```text print('Hello World!')```"
 
     def test_convert_image(self):
         image = ast_tree.Image(source="image.png", alt_text="example image")

@@ -292,7 +292,7 @@ class TypstConverter(BaseConverter):
         Returns:
             str: The Typst inline code with optional language specification.
         """
-        return f"```{inline_code.language+' ' if inline_code.language else ''}{inline_code.code}```"
+        return f"```{inline_code.language or 'text'} {inline_code.code}```"
 
     def convert_image(self, image: ast_tree.Image) -> str:
         """

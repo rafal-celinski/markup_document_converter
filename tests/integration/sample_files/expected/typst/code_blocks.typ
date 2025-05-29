@@ -22,14 +22,14 @@ if __name__ == "__main__":
 ```\ 
 == Kod w linii
 \ 
-Komenda ```git commit -m "message"``` zatwierdza zmiany.
+Komenda ```text git commit -m "message"``` zatwierdza zmiany.
 
 \ 
 == Kombinacja kodu z formatowaniem
 \ 
-*Ważne:* Użyj funkcji ```setTimeout()``` do opóźnienia.
+*Ważne:* Użyj funkcji ```text setTimeout()``` do opóźnienia.
 
 \ 
-_Uwaga:_ Komenda ```npm install``` może trwać długo.
+_Uwaga:_ Komenda ```text npm install``` może trwać długo.
 
 
