@@ -20,7 +20,7 @@ dependencies = [
 [tool.poetry]
 packages = [{include = "markup_document_converter", from = "src"}]
 
-[tool.scripts]
+[project.scripts]
 markup_converter = "markup_document_converter.cli:app"
 mdc = "markup_document_converter.cli:app"
 
