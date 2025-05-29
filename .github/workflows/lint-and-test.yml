@@ -9,6 +9,9 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout repository
@@ -16,10 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up multiple Python versions
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.13"
+          python-version: |
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Install Poetry
         run: pip install poetry
@@ -35,3 +43,6 @@ jobs:
 
       - name: Run tests
         run: PYTHONPATH=$PWD/src poetry run pytest
+
+      - name: Run tests with Tox
+        run: poetry run tox
