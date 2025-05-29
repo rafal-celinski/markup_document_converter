@@ -10,7 +10,7 @@ authors = [
     {name = "Przemysław Walecki", email = "p.walecki12@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 dependencies = [
     "typer[all] (>=0.15.3,<0.16.0)",
     "flask (>=3.1.1,<4.0.0)",
@@ -30,6 +30,7 @@ flake8 = "^7.1.2"
 pre-commit = "^4.2.0"
 pytest = ">=8.3.5,<9.0.0"
 pytest-cov = ">=6.1.1,<7.0.0"
+tox = "^4.26.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
