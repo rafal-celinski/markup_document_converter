@@ -1,7 +1,7 @@
 [project]
 name = "markup-document-converter"
 
-version = "0.4.7"
+version = "1.0.0"
 description = "Convert markup documents (Markdown to Typst or LaTeX) via CLI or web interface"
 
 authors = [
@@ -20,7 +20,7 @@ dependencies = [
 [tool.poetry]
 packages = [{include = "markup_document_converter", from = "src"}]
 
-[tool.poetry.scripts]
+[project.scripts]
 markup_converter = "markup_document_converter.cli:app"
 mdc = "markup_document_converter.cli:app"
 
@@ -31,6 +31,12 @@ pre-commit = "^4.2.0"
 pytest = ">=8.3.5,<9.0.0"
 pytest-cov = ">=6.1.1,<7.0.0"
 tox = "^4.26.0"
+
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.29.1"}
+mkdocs-material = "^9.6.14"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
