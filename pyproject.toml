@@ -1,7 +1,7 @@
 [project]
 name = "markup-document-converter"
 
-version = "0.4.7"
+version = "1.0.0"
 description = "Convert markup documents (Markdown to Typst or LaTeX) via CLI or web interface"
 
 authors = [
