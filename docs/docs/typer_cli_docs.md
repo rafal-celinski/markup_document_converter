@@ -15,9 +15,10 @@ $ markup_document_converter [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `list-formats`: Show all supported input parsers and...
+* `list-formats`: Show all supported input parsers and output converters,
+    listing each primary name with its aliases.
 * `webapp`: Run the Flask web-app.
-* `convert`: Read from a file or stdin, parse to the...
+* `convert`: Read from a file or stdin, parse to the universal AST, then render as the chosen TARGET format.
 
 ## `markup_document_converter list-formats`
 

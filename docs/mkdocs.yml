@@ -3,9 +3,7 @@ theme:
   name: material
 
 nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
-  - Architecture: architecture.md
+  - Start: index.md
   - Project Files:
       - CLI: api/cli.md
       - AST Tree: api/ast_tree.md
